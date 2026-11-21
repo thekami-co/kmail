@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">Inbox</string>
+    <string name="inbox_group_list">Message list</string>
+    <string name="inbox_photos">Sender photos</string>
+    <string name="inbox_photos_desc">Show profile pictures from Gravatar when a sender has one. Only a hashed email address is sent.</string>
+    <string name="inbox_group_swipe">Swipe actions</string>
+    <string name="inbox_swipe_right">Swipe right</string>
+    <string name="inbox_swipe_left">Swipe left</string>
+    <string name="swipe_archive">Archive</string>
+    <string name="swipe_delete">Delete</string>
+    <string name="swipe_star">Star or unstar</string>
+    <string name="swipe_none">Nothing</string>
+</resources>

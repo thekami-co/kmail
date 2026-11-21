@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">받은편지함</string>
+    <string name="inbox_group_list">메일 목록</string>
+    <string name="inbox_photos">보낸 사람 사진</string>
+    <string name="inbox_photos_desc">보낸 사람에게 Gravatar 사진이 있으면 표시합니다. 해시 처리된 이메일 주소만 전송됩니다.</string>
+    <string name="inbox_group_swipe">스와이프 동작</string>
+    <string name="inbox_swipe_right">오른쪽으로 스와이프</string>
+    <string name="inbox_swipe_left">왼쪽으로 스와이프</string>
+    <string name="swipe_archive">보관</string>
+    <string name="swipe_delete">삭제</string>
+    <string name="swipe_star">별표 지정 또는 해제</string>
+    <string name="swipe_none">없음</string>
+</resources>

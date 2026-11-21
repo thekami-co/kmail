@@ -39,6 +39,8 @@ data class SettingsEntry(
     val subtitle: String? = null,
     /** True for rows that leave the app (web page, store), so they get an "open" arrow. */
     val external: Boolean = false,
+    /** Replaces the arrow on the right, for example a switch. */
+    val trailing: (@Composable () -> Unit)? = null,
     val onClick: () -> Unit,
 )
 
@@ -50,6 +52,7 @@ fun SettingsHub(
     versionName: String,
     onAccounts: () -> Unit,
     onSignature: () -> Unit,
+    onInbox: () -> Unit,
     onAppearance: () -> Unit,
     onLanguage: () -> Unit,
     onSync: () -> Unit,
@@ -66,6 +69,7 @@ fun SettingsHub(
         SettingsGroup(
             title = stringResource(R.string.settings_group_mail),
             entries = listOf(
+                SettingsEntry(AppIcons.Inbox, stringResource(R.string.settings_inbox), onClick = onInbox),
                 SettingsEntry(AppIcons.NoteEdit, stringResource(R.string.settings_signature_title), onClick = onSignature),
                 SettingsEntry(AppIcons.Sync, stringResource(R.string.settings_sync), onClick = onSync),
             ),
@@ -157,16 +161,20 @@ private fun SettingsRow(entry: SettingsEntry) {
                     entry.subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (entry.trailing != null) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
-        Icon(
-            if (entry.external) AppIcons.OpenInNew else AppIcons.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (entry.trailing != null) {
+            entry.trailing.invoke()
+        } else {
+            Icon(
+                if (entry.external) AppIcons.OpenInNew else AppIcons.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

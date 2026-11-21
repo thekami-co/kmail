@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">受信トレイ</string>
+    <string name="inbox_group_list">メール一覧</string>
+    <string name="inbox_photos">送信者の写真</string>
+    <string name="inbox_photos_desc">送信者が Gravatar の写真を設定している場合に表示します。送信されるのはハッシュ化したメールアドレスのみです。</string>
+    <string name="inbox_group_swipe">スワイプ操作</string>
+    <string name="inbox_swipe_right">右にスワイプ</string>
+    <string name="inbox_swipe_left">左にスワイプ</string>
+    <string name="swipe_archive">アーカイブ</string>
+    <string name="swipe_delete">削除</string>
+    <string name="swipe_star">スターを付ける／外す</string>
+    <string name="swipe_none">何もしない</string>
+</resources>

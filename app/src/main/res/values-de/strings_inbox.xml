@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">Posteingang</string>
+    <string name="inbox_group_list">Nachrichtenliste</string>
+    <string name="inbox_photos">Absenderfotos</string>
+    <string name="inbox_photos_desc">Zeigt Profilbilder von Gravatar, falls vorhanden. Es wird nur ein Hash der E-Mail-Adresse gesendet.</string>
+    <string name="inbox_group_swipe">Wischaktionen</string>
+    <string name="inbox_swipe_right">Nach rechts wischen</string>
+    <string name="inbox_swipe_left">Nach links wischen</string>
+    <string name="swipe_archive">Archivieren</string>
+    <string name="swipe_delete">Löschen</string>
+    <string name="swipe_star">Mit Stern markieren oder entfernen</string>
+    <string name="swipe_none">Nichts</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">صندوق الوارد</string>
+    <string name="inbox_group_list">قائمة الرسائل</string>
+    <string name="inbox_photos">صور المرسلين</string>
+    <string name="inbox_photos_desc">عرض صورة المرسل من Gravatar إن وُجدت. يتم إرسال عنوان البريد المُشفَّر (hash) فقط.</string>
+    <string name="inbox_group_swipe">إجراءات السحب</string>
+    <string name="inbox_swipe_right">السحب لليمين</string>
+    <string name="inbox_swipe_left">السحب لليسار</string>
+    <string name="swipe_archive">أرشفة</string>
+    <string name="swipe_delete">حذف</string>
+    <string name="swipe_star">تمييز بنجمة أو إزالته</string>
+    <string name="swipe_none">لا شيء</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">ইনবক্স</string>
+    <string name="inbox_group_list">মেইলের তালিকা</string>
+    <string name="inbox_photos">প্রেরকের ছবি</string>
+    <string name="inbox_photos_desc">প্রেরকের Gravatar ছবি থাকলে দেখানো হবে। শুধু হ্যাশ করা ইমেইল ঠিকানা পাঠানো হয়।</string>
+    <string name="inbox_group_swipe">সোয়াইপ অ্যাকশন</string>
+    <string name="inbox_swipe_right">ডানে সোয়াইপ</string>
+    <string name="inbox_swipe_left">বামে সোয়াইপ</string>
+    <string name="swipe_archive">আর্কাইভ</string>
+    <string name="swipe_delete">মুছুন</string>
+    <string name="swipe_star">স্টার দিন বা সরান</string>
+    <string name="swipe_none">কিছু না</string>
+</resources>

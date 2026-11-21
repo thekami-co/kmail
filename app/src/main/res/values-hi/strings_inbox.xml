@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_inbox">इनबॉक्स</string>
+    <string name="inbox_group_list">मेल सूची</string>
+    <string name="inbox_photos">भेजने वाले की फ़ोटो</string>
+    <string name="inbox_photos_desc">अगर भेजने वाले की Gravatar फ़ोटो है तो दिखाएँ। केवल हैश किया हुआ ईमेल पता भेजा जाता है।</string>
+    <string name="inbox_group_swipe">स्वाइप क्रियाएँ</string>
+    <string name="inbox_swipe_right">दाएँ स्वाइप</string>
+    <string name="inbox_swipe_left">बाएँ स्वाइप</string>
+    <string name="swipe_archive">आर्काइव</string>
+    <string name="swipe_delete">हटाएँ</string>
+    <string name="swipe_star">स्टार लगाएँ या हटाएँ</string>
+    <string name="swipe_none">कुछ नहीं</string>
+</resources>
