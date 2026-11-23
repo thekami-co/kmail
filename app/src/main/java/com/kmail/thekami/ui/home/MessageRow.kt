@@ -22,6 +22,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +65,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -269,16 +272,20 @@ private fun MessageRow(
                         )
                     }
                 }
-                IconButton(
-                    onClick = {
-                        starred = !starred
-                        onToggleStar()
-                    },
-                    modifier = Modifier.size(36.dp),
+                Box(
+                    modifier = Modifier
+                        .offset(x = 8.dp)
+                        .size(width = 32.dp, height = 24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(role = Role.Button) {
+                            starred = !starred
+                            onToggleStar()
+                        },
+                    contentAlignment = Alignment.Center,
                 ) {
                     AnimatedContent(
                         targetState = starred,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         contentAlignment = Alignment.Center,
                         transitionSpec = {
                             (
@@ -292,7 +299,7 @@ private fun MessageRow(
                             imageVector = if (isStarred) AppIcons.Star else AppIcons.StarOutline,
                             contentDescription = stringResource(R.string.home_toggle_star),
                             tint = if (isStarred) StarAmber else scheme.outline,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
