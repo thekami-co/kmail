@@ -2,6 +2,7 @@ package com.kmail.thekami.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -44,6 +45,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -391,25 +393,36 @@ private fun SearchPill(
 
 @Composable
 private fun FilterChips(active: ListFilter, onFilter: (ListFilter) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
     Row(
-        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         listOf(
-            ListFilter.UNREAD to R.string.sidebar_unread,
-            ListFilter.STARRED to R.string.sidebar_starred,
-            ListFilter.ATTACHMENTS to R.string.chip_attachments,
-        ).forEach { (filter, label) ->
+            Triple(ListFilter.UNREAD, R.string.sidebar_unread, AppIcons.MarkUnread),
+            Triple(ListFilter.STARRED, R.string.sidebar_starred, AppIcons.StarOutline),
+            Triple(ListFilter.ATTACHMENTS, R.string.chip_attachments, AppIcons.Attachment),
+        ).forEach { (filter, label, icon) ->
             val selected = active == filter
             FilterChip(
                 selected = selected,
                 onClick = { onFilter(if (selected) ListFilter.ALL else filter) },
-                label = { Text(stringResource(label)) },
-                leadingIcon = if (selected) {
-                    { Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                } else {
-                    null
+                label = { Text(stringResource(label), style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = {
+                    AnimatedContent(targetState = selected, label = "chip-icon") { isSelected ->
+                        Icon(
+                            if (isSelected) AppIcons.Check else icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 },
+                shape = RoundedCornerShape(50),
+                border = null,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = scheme.surfaceContainerHigh,
+                    selectedContainerColor = scheme.secondaryContainer,
+                ),
             )
         }
     }

@@ -1,28 +1,21 @@
 package com.kmail.thekami.ui.settings
 
 import android.os.Build
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -32,7 +25,7 @@ import com.kmail.thekami.R
 import com.kmail.thekami.ui.components.AppIcons
 import com.kmail.thekami.ui.support.SupportSection
 
-/** One tappable line inside a settings group. */
+/** One tappable line in a settings section. */
 data class SettingsEntry(
     val icon: ImageVector,
     val title: String,
@@ -44,7 +37,7 @@ data class SettingsEntry(
     val onClick: () -> Unit,
 )
 
-/** The main settings page: grouped cards, one topic per card. */
+/** The main settings page: flat Material 3 list items under small section labels. */
 @Composable
 fun SettingsHub(
     accountsSummary: String?,
@@ -100,82 +93,57 @@ fun SettingsHub(
     }
 }
 
-/** A titled, rounded card holding a list of rows. A null title leaves only a small gap. */
+/** A small colored section label with its rows below it. No boxes. */
 @Composable
 fun SettingsGroup(title: String?, entries: List<SettingsEntry>) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         if (title != null) {
             Text(
                 title,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 12.dp, top = 20.dp, bottom = 8.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 4.dp),
             )
         } else {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
         }
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-            Column {
-                entries.forEachIndexed { index, entry ->
-                    SettingsRow(entry)
-                    if (index < entries.lastIndex) {
-                        HorizontalDivider(
-                            Modifier.padding(start = 72.dp, end = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                        )
-                    }
-                }
-            }
-        }
+        entries.forEach { entry -> SettingsRow(entry) }
     }
 }
 
 @Composable
 private fun SettingsRow(entry: SettingsEntry) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = entry.onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                entry.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            Text(entry.title, style = MaterialTheme.typography.bodyLarge)
-            if (entry.subtitle != null) {
+    val scheme = MaterialTheme.colorScheme
+    ListItem(
+        headlineContent = { Text(entry.title) },
+        supportingContent = entry.subtitle?.let { subtitle ->
+            {
                 Text(
-                    entry.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    subtitle,
                     maxLines = if (entry.trailing != null) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        if (entry.trailing != null) {
-            entry.trailing.invoke()
-        } else {
-            Icon(
-                if (entry.external) AppIcons.OpenInNew else AppIcons.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+        },
+        leadingContent = { Icon(entry.icon, contentDescription = null) },
+        trailingContent = {
+            if (entry.trailing != null) {
+                entry.trailing.invoke()
+            } else {
+                Icon(
+                    if (entry.external) AppIcons.OpenInNew else AppIcons.ChevronRight,
+                    contentDescription = null,
+                )
+            }
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+            leadingIconColor = scheme.onSurfaceVariant,
+            trailingIconColor = scheme.onSurfaceVariant,
+            supportingColor = scheme.onSurfaceVariant,
+        ),
+        modifier = Modifier.clickable(onClick = entry.onClick),
+    )
 }
 
 @Composable

@@ -39,12 +39,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 /**
- * One frame for every setup screen. The wordmark and an optional action sit on top, the form
- * scrolls, and the main action stays pinned at the bottom above the keyboard. Wide landscape
- * screens put the header on the left and the form on the right.
+ * One frame for every setup screen. The wordmark and an optional action sit on top. The header,
+ * the fields and the buttons all live in one scrolling form, so nothing jumps when the keyboard
+ * opens: the form just scrolls. Wide landscape screens put the header on the left and the form on
+ * the right.
  *
- * With [centered] the header and form sit in the middle of the free space, and scroll only when
- * the screen is too small to show them (small phones, open keyboard).
+ * With [centered] the form sits in the middle of the free space, and scrolls only when the screen
+ * is too small to show it (small phones, open keyboard).
  */
 @Composable
 internal fun AuthLayout(
@@ -78,21 +79,10 @@ internal fun AuthLayout(
                     ) {
                         AuthHeader(overline, title, subtitle)
                     }
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                    ScrollingForm(Modifier.weight(1f).fillMaxHeight(), centered) {
+                        content()
                         Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(vertical = 16.dp),
-                            verticalArrangement = if (centered) {
-                                Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-                            } else {
-                                Arrangement.spacedBy(16.dp)
-                            },
-                        ) { content() }
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) { bottomBar() }
                     }
@@ -104,30 +94,39 @@ internal fun AuthLayout(
                     modifier = Modifier.widthIn(max = 480.dp).fillMaxSize().padding(horizontal = 24.dp),
                 ) {
                     TopBar(actions)
-                    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                        // The free height. The form is at least this tall so it can sit in the middle.
-                        val viewport = maxHeight
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().heightIn(min = viewport),
-                                verticalArrangement = Arrangement.spacedBy(
-                                    16.dp,
-                                    if (centered) Alignment.CenterVertically else Alignment.Top,
-                                ),
-                            ) {
-                                if (!centered) Spacer(Modifier.size(16.dp))
-                                AuthHeader(overline, title, subtitle)
-                                Spacer(Modifier.size(8.dp))
-                                content()
-                            }
-                        }
+                    ScrollingForm(Modifier.weight(1f).fillMaxWidth(), centered) {
+                        AuthHeader(overline, title, subtitle)
+                        Spacer(Modifier.size(8.dp))
+                        content()
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) { bottomBar() }
                     }
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) { bottomBar() }
                 }
             }
+        }
+    }
+}
+
+/** A scrolling column that is at least as tall as the free space, so its content can sit in the middle. */
+@Composable
+private fun ScrollingForm(
+    modifier: Modifier,
+    centered: Boolean,
+    body: @Composable ColumnScope.() -> Unit,
+) {
+    BoxWithConstraints(modifier) {
+        val viewport = maxHeight
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(min = viewport).padding(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(
+                    16.dp,
+                    if (centered) Alignment.CenterVertically else Alignment.Top,
+                ),
+                content = body,
+            )
         }
     }
 }

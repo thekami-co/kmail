@@ -1,17 +1,21 @@
 package com.kmail.thekami.ui.home
 
-import com.kmail.thekami.ui.components.AppIcons
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,8 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,15 +35,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kmail.thekami.R
 import com.kmail.thekami.data.db.FolderEntity
 import com.kmail.thekami.domain.model.FolderRole
+import com.kmail.thekami.ui.components.AppIcons
 
 fun folderIcon(role: FolderRole): ImageVector = when (role) {
     FolderRole.INBOX -> AppIcons.Inbox
@@ -74,36 +83,25 @@ private fun rolePriority(role: FolderRole): Int = when (role) {
     FolderRole.CUSTOM -> 6
 }
 
-/** Red pill: there is unread mail waiting in an inbox. */
-@Composable
-private fun UnreadPill(count: Int?) {
-    if (count != null && count > 0) {
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.error)
-                .padding(horizontal = 7.dp, vertical = 1.dp),
-        ) {
-            Text(
-                if (count > 999) "999+" else count.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onError,
-            )
-        }
-    }
-}
+private fun countText(count: Int): String = if (count > 999) "999+" else count.toString()
 
-/** Quiet count for folders other than the inbox. */
+/** The app name in a flowing hand, with the first letter in the brand teal. No logo. */
 @Composable
-private fun CountText(count: Int?) {
-    if (count != null && count > 0) {
-        Text(
-            if (count > 999) "999+" else count.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun DrawerBrand() {
+    val name = stringResource(R.string.app_name)
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val teal = if (dark) Color(0xFF4DB6AC) else Color(0xFF00897B)
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = teal)) { append(name.take(1)) }
+            append(name.drop(1))
+        },
+        fontFamily = FontFamily.Cursive,
+        fontWeight = FontWeight.Bold,
+        fontSize = 38.sp,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(start = 28.dp, end = 24.dp, top = 24.dp, bottom = 12.dp),
+    )
 }
 
 @Composable
@@ -120,32 +118,73 @@ private fun AccountAvatar(email: String, color: Color, size: Dp) {
     }
 }
 
+/** One line in the drawer: icon, name, and a plain count on the right. */
 @Composable
-private fun DrawerHeader() {
+private fun DrawerItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    count: Int? = null,
+    emphasizeCount: Boolean = false,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val container by animateColorAsState(
+        targetValue = if (selected) scheme.secondaryContainer else Color.Transparent,
+        animationSpec = tween(150),
+        label = "drawer-item",
+    )
     Row(
-        Modifier.padding(start = 28.dp, end = 28.dp, top = 24.dp, bottom = 16.dp),
+        modifier = Modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(container)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(
-            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(AppIcons.Mail, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp),
+            tint = if (selected) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
         )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) scheme.onSecondaryContainer else scheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (count != null && count > 0) {
+            Text(
+                text = countText(count),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (emphasizeCount) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (selected) scheme.onSecondaryContainer else if (emphasizeCount) scheme.onSurface else scheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
+@Composable
+private fun DrawerDivider() {
+    HorizontalDivider(
+        Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+    )
+}
+
 /**
- * Top: the combined views (all inboxes, starred, unread).
- * Middle: an account switcher and the folders of the active account only.
- * Bottom (fixed): settings.
+ * One flat list, narrow and light.
+ * Top: the account switcher, then the combined views (all inboxes, starred, unread).
+ * Middle: the folders of the active account.
+ * Bottom: drafts and settings.
  */
 @Composable
 fun HomeDrawer(
@@ -155,7 +194,6 @@ fun HomeDrawer(
     onSettings: () -> Unit,
     onAddAccount: () -> Unit,
 ) {
-    val pad = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     var chosenId by rememberSaveable { mutableStateOf<String?>(null) }
     var switching by remember { mutableStateOf(false) }
 
@@ -168,165 +206,159 @@ fun HomeDrawer(
     }
     val activeId = selectedAccountId ?: chosenId
     val active = state.sidebar.firstOrNull { it.account.id == activeId } ?: state.sidebar.firstOrNull()
+    val scheme = MaterialTheme.colorScheme
 
-    ModalDrawerSheet {
-        Column(Modifier.fillMaxHeight()) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                DrawerHeader()
+    ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+        Column(
+            Modifier.fillMaxHeight().verticalScroll(rememberScrollState()).padding(bottom = 16.dp),
+        ) {
+            DrawerBrand()
 
-                NavigationDrawerItem(
-                    icon = { Icon(AppIcons.InboxAll, contentDescription = null) },
-                    label = { Text(stringResource(R.string.home_all_inboxes)) },
-                    badge = { UnreadPill(allUnread) },
-                    selected = state.selection is MailboxSelection.Unified,
-                    onClick = { onSelect(MailboxSelection.Unified) },
-                    modifier = pad,
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(AppIcons.StarOutline, contentDescription = null) },
-                    label = { Text(stringResource(R.string.sidebar_starred)) },
-                    selected = state.selection is MailboxSelection.Starred,
-                    onClick = { onSelect(MailboxSelection.Starred) },
-                    modifier = pad,
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(AppIcons.MarkUnread, contentDescription = null) },
-                    label = { Text(stringResource(R.string.sidebar_unread)) },
-                    selected = state.selection is MailboxSelection.Unread,
-                    onClick = { onSelect(MailboxSelection.Unread) },
-                    modifier = pad,
-                )
+            if (active != null) {
+                // The account in use. Tap to switch. The list below includes this account too.
+                Row(
+                    Modifier
+                        .padding(horizontal = 12.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(scheme.surfaceContainerHigh)
+                        .clickable { switching = !switching }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AccountAvatar(active.account.emailAddress, Color(active.account.colorArgb), 30.dp)
+                    Text(
+                        text = active.account.emailAddress,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        if (switching) AppIcons.ChevronUp else AppIcons.ChevronDown,
+                        contentDescription = null,
+                        tint = scheme.onSurfaceVariant,
+                    )
+                }
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
-
-                if (active != null) {
-                    val othersUnread = state.sidebar.any {
-                        it.account.id != active.account.id && inboxUnread(it.folders) > 0
-                    }
-
-                    // Account switcher
-                    Row(
-                        pad
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { switching = !switching }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AccountAvatar(active.account.emailAddress, Color(active.account.colorArgb), 32.dp)
-                        Text(
-                            text = active.account.emailAddress,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (othersUnread && !switching) {
-                            Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error))
-                        }
-                        Icon(
-                            if (switching) AppIcons.ChevronUp else AppIcons.ChevronDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    AnimatedVisibility(visible = switching) {
-                        Column {
-                            state.sidebar.forEach { entry ->
-                                val isActive = entry.account.id == active.account.id
-                                Row(
-                                    pad
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(28.dp))
-                                        .clickable {
-                                            chosenId = entry.account.id
-                                            switching = false
-                                            if (!isActive) {
-                                                entry.folders.firstOrNull { it.role == FolderRole.INBOX }
-                                                    ?.let { onSelect(MailboxSelection.Folder(it.id)) }
-                                            }
+                AnimatedVisibility(visible = switching) {
+                    Column(Modifier.padding(top = 4.dp)) {
+                        state.sidebar.forEach { entry ->
+                            val isActive = entry.account.id == active.account.id
+                            Row(
+                                Modifier
+                                    .padding(horizontal = 12.dp)
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .clickable {
+                                        chosenId = entry.account.id
+                                        switching = false
+                                        if (!isActive) {
+                                            entry.folders.firstOrNull { it.role == FolderRole.INBOX }
+                                                ?.let { onSelect(MailboxSelection.Folder(it.id)) }
                                         }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    AccountAvatar(entry.account.emailAddress, Color(entry.account.colorArgb), 28.dp)
-                                    Text(
-                                        text = entry.account.emailAddress,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
+                                    }
+                                    .padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                AccountAvatar(entry.account.emailAddress, Color(entry.account.colorArgb), 26.dp)
+                                Text(
+                                    text = entry.account.emailAddress,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = scheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (isActive) {
+                                    Icon(
+                                        AppIcons.Check,
+                                        contentDescription = null,
+                                        tint = scheme.primary,
                                     )
-                                    if (isActive) {
-                                        Icon(
-                                            AppIcons.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
+                                } else {
+                                    val unread = inboxUnread(entry.folders)
+                                    if (unread > 0) {
+                                        Text(
+                                            countText(unread),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = scheme.onSurfaceVariant,
                                         )
-                                    } else {
-                                        UnreadPill(inboxUnread(entry.folders))
                                     }
                                 }
                             }
-                            NavigationDrawerItem(
-                                icon = { Icon(AppIcons.AddAccount, contentDescription = null) },
-                                label = { Text(stringResource(R.string.home_add_account)) },
-                                selected = false,
-                                onClick = onAddAccount,
-                                modifier = pad,
+                        }
+                        DrawerItem(
+                            icon = AppIcons.AddAccount,
+                            label = stringResource(R.string.home_add_account),
+                            selected = false,
+                            onClick = onAddAccount,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Combined views.
+            DrawerItem(
+                icon = AppIcons.InboxAll,
+                label = stringResource(R.string.home_all_inboxes),
+                selected = state.selection is MailboxSelection.Unified,
+                onClick = { onSelect(MailboxSelection.Unified) },
+                count = allUnread,
+                emphasizeCount = true,
+            )
+            DrawerItem(
+                icon = AppIcons.StarOutline,
+                label = stringResource(R.string.sidebar_starred),
+                selected = state.selection is MailboxSelection.Starred,
+                onClick = { onSelect(MailboxSelection.Starred) },
+            )
+            DrawerItem(
+                icon = AppIcons.MarkUnread,
+                label = stringResource(R.string.sidebar_unread),
+                selected = state.selection is MailboxSelection.Unread,
+                onClick = { onSelect(MailboxSelection.Unread) },
+            )
+
+            // Folders of the active account.
+            if (active != null) {
+                AnimatedVisibility(visible = !switching) {
+                    Column {
+                        DrawerDivider()
+                        active.folders.sortedBy { rolePriority(it.role) }.forEach { folder ->
+                            DrawerItem(
+                                icon = folderIcon(folder.role),
+                                label = folderLabel(folder),
+                                selected = state.selection == MailboxSelection.Folder(folder.id),
+                                onClick = { onSelect(MailboxSelection.Folder(folder.id)) },
+                                count = state.unread[folder.id],
+                                emphasizeCount = folder.role == FolderRole.INBOX,
                             )
                         }
                     }
-
-                    // Every folder of the active account, in one flat list.
-                    AnimatedVisibility(visible = !switching) {
-                        Column(Modifier.padding(top = 4.dp)) {
-                            active.folders.sortedBy { rolePriority(it.role) }.forEach { folder ->
-                                NavigationDrawerItem(
-                                    icon = { Icon(folderIcon(folder.role), contentDescription = null) },
-                                    label = { Text(folderLabel(folder)) },
-                                    badge = {
-                                        if (folder.role == FolderRole.INBOX) {
-                                            UnreadPill(state.unread[folder.id])
-                                        } else {
-                                            CountText(state.unread[folder.id])
-                                        }
-                                    },
-                                    selected = state.selection == MailboxSelection.Folder(folder.id),
-                                    onClick = { onSelect(MailboxSelection.Folder(folder.id)) },
-                                    modifier = pad,
-                                )
-                            }
-                        }
-                    }
                 }
-
-                HorizontalDivider(Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
-                NavigationDrawerItem(
-                    icon = { Icon(AppIcons.NoteEdit, contentDescription = null) },
-                    label = { Text(stringResource(R.string.home_drafts)) },
-                    selected = false,
-                    onClick = onDrafts,
-                    modifier = pad,
-                )
             }
 
-            HorizontalDivider(Modifier.padding(horizontal = 28.dp))
-            Column(Modifier.padding(vertical = 8.dp)) {
-                NavigationDrawerItem(
-                    icon = { Icon(AppIcons.Settings, contentDescription = null) },
-                    label = { Text(stringResource(R.string.home_settings)) },
-                    selected = false,
-                    onClick = onSettings,
-                    modifier = pad,
-                )
-            }
+            DrawerDivider()
+            DrawerItem(
+                icon = AppIcons.NoteEdit,
+                label = stringResource(R.string.home_drafts),
+                selected = false,
+                onClick = onDrafts,
+            )
+            DrawerItem(
+                icon = AppIcons.Settings,
+                label = stringResource(R.string.home_settings),
+                selected = false,
+                onClick = onSettings,
+            )
         }
     }
 }
