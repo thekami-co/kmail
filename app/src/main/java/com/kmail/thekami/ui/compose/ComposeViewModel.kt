@@ -404,7 +404,7 @@ class ComposeViewModel @Inject constructor(
                 fail(ComposeError.SendFailed(null))
                 return@launch
             }
-            val name = account.displayName.takeIf { it.isNotBlank() && it != account.emailAddress }
+            val name = signatureStore.displayNameFor(account.id) ?: account.displayName.takeIf { it.isNotBlank() && it != account.emailAddress }
             val raw = withContext(Dispatchers.Default) {
                 MimeBuilder.build(
                     MimeBuilder.Draft(

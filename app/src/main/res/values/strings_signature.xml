@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="sig_email_title">Email signature</string>
+    <string name="sig_email_summary">For each address, with formatting</string>
+    <string name="sig_mobile_title">Mobile signature</string>
+    <string name="sig_mobile_switch">Add the mobile signature</string>
+    <string name="sig_mobile_hint">Added below your email signature on every new message.</string>
+    <string name="sig_on">On</string>
+    <string name="sig_off">Off</string>
+    <string name="sig_address">Email address</string>
+    <string name="sig_display_name">Display name</string>
+    <string name="sig_placeholder">Write your signature…</string>
+    <string name="sig_saved">Signature saved</string>
+    <string name="sig_no_accounts">Add an account first.</string>
+    <string name="sig_bold">Bold</string>
+    <string name="sig_italic">Italic</string>
+    <string name="sig_underline">Underline</string>
+    <string name="sig_strike">Strikethrough</string>
+    <string name="sig_size">Text size</string>
+    <string name="sig_color">Text color</string>
+    <string name="sig_size_small">Small</string>
+    <string name="sig_size_normal">Normal</string>
+    <string name="sig_size_large">Large</string>
+    <string name="sig_size_huge">Huge</string>
+    <string name="sig_color_default">Default color</string>
+    <string name="sig_bulleted">Bulleted list</string>
+    <string name="sig_numbered">Numbered list</string>
+    <string name="sig_quote">Quote</string>
+    <string name="sig_align_left">Align left</string>
+    <string name="sig_align_center">Align center</string>
+    <string name="sig_align_right">Align right</string>
+    <string name="sig_link">Insert link</string>
+    <string name="sig_clear">Clear formatting</string>
+    <string name="sig_more">More</string>
+    <string name="sig_link_text">Text to display</string>
+    <string name="sig_link_url">Web address</string>
+    <string name="sig_link_apply">Insert</string>
+</resources>

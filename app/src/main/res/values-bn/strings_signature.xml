@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sig_email_title">ইমেইল সিগনেচার</string>
+    <string name="sig_email_summary">প্রতিটি ঠিকানার জন্য, ফরম্যাটিংসহ</string>
+    <string name="sig_mobile_title">মোবাইল সিগনেচার</string>
+    <string name="sig_mobile_switch">মোবাইল সিগনেচার যোগ করুন</string>
+    <string name="sig_mobile_hint">প্রতিটি নতুন মেইলে আপনার ইমেইল সিগনেচারের নিচে যোগ হবে।</string>
+    <string name="sig_on">চালু</string>
+    <string name="sig_off">বন্ধ</string>
+    <string name="sig_address">ইমেইল ঠিকানা</string>
+    <string name="sig_display_name">প্রদর্শিত নাম</string>
+    <string name="sig_placeholder">আপনার সিগনেচার লিখুন…</string>
+    <string name="sig_saved">সিগনেচার সেভ হয়েছে</string>
+    <string name="sig_no_accounts">আগে একটি অ্যাকাউন্ট যোগ করুন।</string>
+    <string name="sig_bold">বোল্ড</string>
+    <string name="sig_italic">ইটালিক</string>
+    <string name="sig_underline">আন্ডারলাইন</string>
+    <string name="sig_strike">কাটা দাগ</string>
+    <string name="sig_size">লেখার আকার</string>
+    <string name="sig_color">লেখার রং</string>
+    <string name="sig_size_small">ছোট</string>
+    <string name="sig_size_normal">সাধারণ</string>
+    <string name="sig_size_large">বড়</string>
+    <string name="sig_size_huge">অনেক বড়</string>
+    <string name="sig_color_default">ডিফল্ট রং</string>
+    <string name="sig_bulleted">বুলেট তালিকা</string>
+    <string name="sig_numbered">নম্বর তালিকা</string>
+    <string name="sig_quote">উদ্ধৃতি</string>
+    <string name="sig_align_left">বাঁয়ে সাজান</string>
+    <string name="sig_align_center">মাঝে সাজান</string>
+    <string name="sig_align_right">ডানে সাজান</string>
+    <string name="sig_link">লিংক যোগ করুন</string>
+    <string name="sig_clear">ফরম্যাটিং মুছুন</string>
+    <string name="sig_more">আরও</string>
+    <string name="sig_link_text">যে লেখা দেখাবে</string>
+    <string name="sig_link_url">ওয়েব ঠিকানা</string>
+    <string name="sig_link_apply">যোগ করুন</string>
+</resources>
