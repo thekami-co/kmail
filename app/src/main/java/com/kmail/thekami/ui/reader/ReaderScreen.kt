@@ -16,7 +16,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -33,6 +35,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -55,6 +58,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,10 +72,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -81,7 +87,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -89,6 +101,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -99,12 +112,15 @@ import com.kmail.thekami.mail.Mailbox
 import com.kmail.thekami.mail.ParsedAttachment
 import com.kmail.thekami.ui.components.ErrorState
 import com.kmail.thekami.ui.home.AvatarColors
+import com.kmail.thekami.ui.home.InboxPrefs
+import com.kmail.thekami.ui.home.SenderPhotos
 import com.kmail.thekami.ui.home.actionNoticeText
 import com.kmail.thekami.ui.home.folderIcon
 import com.kmail.thekami.ui.home.folderLabel
 import com.kmail.thekami.ui.setup.messageRes
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -125,6 +141,8 @@ fun ReaderScreen(
     var showMove by remember { mutableStateOf(false) }
     var pendingLink by remember { mutableStateOf<String?>(null) }
     var pendingAttachment by remember { mutableStateOf<ParsedAttachment?>(null) }
+    // The top bar slides away while reading down and comes back when scrolling up.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     val saveLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -148,7 +166,7 @@ fun ReaderScreen(
     val openedBody = state.bodies[state.openedId]
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
@@ -174,14 +192,16 @@ fun ReaderScreen(
                         IconButton(onClick = vm::delete) {
                             Icon(AppIcons.Trash, contentDescription = stringResource(R.string.home_delete))
                         }
-                        IconButton(onClick = vm::markUnread) {
-                            Icon(AppIcons.MarkUnread, contentDescription = stringResource(R.string.reader_mark_unread))
-                        }
                         Box {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(AppIcons.More, contentDescription = stringResource(R.string.reader_more))
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.reader_mark_unread)) },
+                                    leadingIcon = { Icon(AppIcons.MarkUnread, contentDescription = null) },
+                                    onClick = { menuOpen = false; vm.markUnread() },
+                                )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.move_to)) },
                                     leadingIcon = { Icon(AppIcons.Folder, contentDescription = null) },
@@ -201,11 +221,15 @@ fun ReaderScreen(
                         }
                     }
                 },
+                scrollBehavior = scrollBehavior,
             )
         },
         bottomBar = {
-            if (openedBody != null) {
-                val recipients = openedBody.message.to.size + openedBody.message.cc.size
+            AnimatedVisibility(
+                visible = openedBody != null,
+                enter = slideInVertically(tween(320, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(240)),
+            ) {
+                val recipients = (openedBody?.message?.to?.size ?: 0) + (openedBody?.message?.cc?.size ?: 0)
                 ReplyBar(
                     showReplyAll = recipients > 1,
                     onReply = { onCompose("reply", vm.messageId) },
@@ -282,24 +306,26 @@ fun ReaderScreen(
                         Hairline()
 
                         state.thread.forEachIndexed { index, item ->
-                            ThreadEntry(
-                                item = item,
-                                expanded = item.id in state.expanded,
-                                body = state.bodies[item.id],
-                                loading = item.id in state.loadingBodies,
-                                failed = state.failedBodies[item.id],
-                                dark = state.darkView,
-                                ownEmail = state.ownEmail,
-                                onToggle = { vm.toggle(item.id) },
-                                onCompose = { mode -> onCompose(mode, item.id) },
-                                onShowPictures = { vm.setAllowRemote(item.id, true) },
-                                onSave = { attachment ->
-                                    pendingAttachment = attachment
-                                    saveLauncher.launch(attachment.fileName)
-                                },
-                                onLink = { pendingLink = it },
-                                onRetry = { vm.retryBody(item.id) },
-                            )
+                            StaggerIn(index) {
+                                ThreadEntry(
+                                    item = item,
+                                    expanded = item.id in state.expanded,
+                                    body = state.bodies[item.id],
+                                    loading = item.id in state.loadingBodies,
+                                    failed = state.failedBodies[item.id],
+                                    dark = state.darkView,
+                                    ownEmail = state.ownEmail,
+                                    onToggle = { vm.toggle(item.id) },
+                                    onCompose = { mode -> onCompose(mode, item.id) },
+                                    onShowPictures = { vm.setAllowRemote(item.id, true) },
+                                    onSave = { attachment ->
+                                        pendingAttachment = attachment
+                                        saveLauncher.launch(attachment.fileName)
+                                    },
+                                    onLink = { pendingLink = it },
+                                    onRetry = { vm.retryBody(item.id) },
+                                )
+                            }
                             if (index < state.thread.lastIndex) Hairline()
                         }
                         Spacer(Modifier.height(24.dp))
@@ -374,6 +400,22 @@ private fun FadeIn(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+/** Each message of a thread fades in a moment after the one above it. */
+@Composable
+private fun StaggerIn(index: Int, content: @Composable () -> Unit) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay((index * 45L).coerceAtMost(300L))
+        shown = true
+    }
+    val appear by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(260),
+        label = "stagger",
+    )
+    Box(Modifier.graphicsLayer { this.alpha = appear }) { content() }
+}
+
 @Composable
 private fun StarButton(starred: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick) {
@@ -417,6 +459,43 @@ private fun toLine(to: List<Mailbox>, ownEmail: String): String {
     return stringResource(R.string.reader_to_line, names.joinToString(", "))
 }
 
+/** The sender's picture when they have one (same as in the inbox), otherwise their first letter on a soft tint. */
+@Composable
+private fun ReaderAvatar(email: String, name: String, size: Dp) {
+    val context = LocalContext.current
+    val prefs = remember { InboxPrefs.get(context) }
+    val showPhotos by prefs.showPhotos.collectAsStateWithLifecycle()
+    val address = email.takeIf { it.contains('@') }
+    val photo by produceState<ImageBitmap?>(
+        initialValue = if (showPhotos && address != null) SenderPhotos.cached(address) else null,
+        address,
+        showPhotos,
+    ) {
+        value = if (showPhotos && address != null) SenderPhotos.load(context, address) else null
+    }
+    val tone = AvatarColors.colorFor(email.ifBlank { name })
+    val initial = name.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString() ?: "?"
+    Box(
+        Modifier.size(size).clip(CircleShape).background(tone.copy(alpha = 0.16f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Crossfade(targetState = photo, animationSpec = tween(220), label = "reader-avatar") { picture ->
+            if (picture != null) {
+                Image(
+                    bitmap = picture,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(initial, style = MaterialTheme.typography.titleMedium, color = tone)
+                }
+            }
+        }
+    }
+}
+
 /** One message of the conversation. No card, no border: just a row that opens into the message. */
 @Composable
 private fun ThreadEntry(
@@ -453,16 +532,7 @@ private fun ThreadEntry(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                Modifier.size(40.dp).clip(CircleShape).background(AvatarColors.colorFor(item.senderAddress.ifBlank { name })),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    name.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString() ?: "?",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                )
-            }
+            ReaderAvatar(email = item.senderAddress, name = name, size = 40.dp)
             Column(Modifier.weight(1f)) {
                 Text(
                     name,
@@ -657,7 +727,6 @@ private fun AttachmentCard(attachment: ParsedAttachment, onClick: () -> Unit) {
         }
     }
 }
-
 @Composable
 private fun DetailLine(label: String, value: String?) {
     if (value.isNullOrBlank()) return
@@ -670,6 +739,7 @@ private fun DetailLine(label: String, value: String?) {
     }
 }
 
+/** Reply is the main action, forward and reply all are quieter. */
 @Composable
 private fun ReplyBar(
     showReplyAll: Boolean,
@@ -684,7 +754,7 @@ private fun ReplyBar(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilledTonalButton(onClick = onReply, shape = CircleShape, modifier = Modifier.weight(1f)) {
+                Button(onClick = onReply, shape = CircleShape, modifier = Modifier.weight(1f)) {
                     Icon(AppIcons.Reply, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.compose_reply), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -706,24 +776,31 @@ private fun ReplyBar(
     }
 }
 
+/** A soft moving highlight, the same as the inbox placeholders. */
 @Composable
-private fun skeletonTint(): Color {
+private fun skeletonBrush(): Brush {
     val transition = rememberInfiniteTransition(label = "reader-skeleton")
-    val alpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "alpha",
+    val shift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1300, easing = LinearEasing), RepeatMode.Restart),
+        label = "shift",
     )
-    return MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)
+    val ink = MaterialTheme.colorScheme.onSurface
+    val x = -500f + shift * 2400f
+    return Brush.linearGradient(
+        colors = listOf(ink.copy(alpha = 0.06f), ink.copy(alpha = 0.13f), ink.copy(alpha = 0.06f)),
+        start = Offset(x, 0f),
+        end = Offset(x + 500f, 0f),
+    )
 }
 
 @Composable
 private fun BodySkeleton() {
-    val tint = skeletonTint()
+    val brush = skeletonBrush()
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         repeat(4) { i ->
-            Box(Modifier.height(12.dp).fillMaxWidth(if (i == 3) 0.5f else 1f).clip(RoundedCornerShape(6.dp)).background(tint))
+            Box(Modifier.height(12.dp).fillMaxWidth(if (i == 3) 0.5f else 1f).clip(RoundedCornerShape(6.dp)).background(brush))
         }
     }
 }
@@ -731,19 +808,19 @@ private fun BodySkeleton() {
 /** Shown while the thread is being found: the same shape as the real page. */
 @Composable
 private fun ReaderSkeleton() {
-    val tint = skeletonTint()
+    val brush = skeletonBrush()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Box(Modifier.height(26.dp).fillMaxWidth(0.7f).clip(RoundedCornerShape(8.dp)).background(tint))
+        Box(Modifier.height(26.dp).fillMaxWidth(0.7f).clip(RoundedCornerShape(8.dp)).background(brush))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(tint))
+            Box(Modifier.size(40.dp).clip(CircleShape).background(brush))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.height(12.dp).width(140.dp).clip(RoundedCornerShape(6.dp)).background(tint))
-                Box(Modifier.height(10.dp).width(90.dp).clip(RoundedCornerShape(5.dp)).background(tint))
+                Box(Modifier.height(12.dp).width(140.dp).clip(RoundedCornerShape(6.dp)).background(brush))
+                Box(Modifier.height(10.dp).width(90.dp).clip(RoundedCornerShape(5.dp)).background(brush))
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             repeat(5) { i ->
-                Box(Modifier.height(12.dp).fillMaxWidth(if (i == 4) 0.55f else 1f).clip(RoundedCornerShape(6.dp)).background(tint))
+                Box(Modifier.height(12.dp).fillMaxWidth(if (i == 4) 0.55f else 1f).clip(RoundedCornerShape(6.dp)).background(brush))
             }
         }
     }
