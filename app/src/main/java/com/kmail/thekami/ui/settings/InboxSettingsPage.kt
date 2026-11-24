@@ -38,6 +38,7 @@ private fun SwipeAction.label(): String = stringResource(
         SwipeAction.ARCHIVE -> R.string.swipe_archive
         SwipeAction.DELETE -> R.string.swipe_delete
         SwipeAction.STAR -> R.string.swipe_star
+        SwipeAction.READ -> R.string.swipe_read
         SwipeAction.NONE -> R.string.swipe_none
     },
 )
@@ -46,6 +47,7 @@ private fun SwipeAction.icon(): ImageVector = when (this) {
     SwipeAction.ARCHIVE -> AppIcons.Archive
     SwipeAction.DELETE -> AppIcons.Trash
     SwipeAction.STAR -> AppIcons.Star
+    SwipeAction.READ -> AppIcons.MarkUnread
     SwipeAction.NONE -> AppIcons.Close
 }
 

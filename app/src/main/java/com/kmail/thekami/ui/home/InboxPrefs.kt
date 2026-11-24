@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** What a swipe on a message does. NONE turns that direction off. */
-enum class SwipeAction { ARCHIVE, DELETE, STAR, NONE }
+enum class SwipeAction { ARCHIVE, DELETE, STAR, READ, NONE }
 
 /**
  * Inbox choices that belong to the person using the app, kept on this device.

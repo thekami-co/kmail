@@ -109,6 +109,7 @@ fun SwipeableMessageRow(
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onToggleRead: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val prefs = remember { InboxPrefs.get(context) }
@@ -116,6 +117,8 @@ fun SwipeableMessageRow(
     val leftAction by prefs.swipeLeft.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
     val state = rememberSwipeToDismissBoxState(positionalThreshold = { distance -> distance * 0.4f })
+    // The read mark flips at once. The list catches up when the update lands.
+    var read by remember(item.id, item.isRead) { mutableStateOf(item.isRead) }
 
     LaunchedEffect(state.currentValue) {
         val value = state.currentValue
@@ -126,10 +129,15 @@ fun SwipeableMessageRow(
             SwipeAction.ARCHIVE -> onArchive()
             SwipeAction.DELETE -> onDelete()
             SwipeAction.STAR -> onToggleStar()
+            SwipeAction.READ -> {
+                read = !read
+                onToggleRead()
+            }
             SwipeAction.NONE -> Unit
         }
         // Archive and delete remove this row, which ends this effect. Anything else brings the card back.
-        delay(if (action == SwipeAction.STAR) 150 else 1200)
+        val staysInList = action == SwipeAction.STAR || action == SwipeAction.READ || action == SwipeAction.NONE
+        delay(if (staysInList) 150 else 1200)
         state.reset()
     }
 
@@ -153,6 +161,7 @@ fun SwipeableMessageRow(
                     !armed || action == SwipeAction.NONE -> scheme.surfaceContainerHigh
                     action == SwipeAction.DELETE -> scheme.errorContainer
                     action == SwipeAction.STAR -> scheme.secondaryContainer
+                    action == SwipeAction.READ -> scheme.tertiaryContainer
                     else -> scheme.primaryContainer
                 },
                 label = "swipe-container",
@@ -160,6 +169,7 @@ fun SwipeableMessageRow(
             val iconTint = when (action) {
                 SwipeAction.DELETE -> scheme.onErrorContainer
                 SwipeAction.STAR -> scheme.onSecondaryContainer
+                SwipeAction.READ -> scheme.onTertiaryContainer
                 else -> scheme.onPrimaryContainer
             }
             val iconScale by animateFloatAsState(
@@ -175,6 +185,7 @@ fun SwipeableMessageRow(
                     SwipeAction.ARCHIVE -> AppIcons.Archive
                     SwipeAction.DELETE -> AppIcons.Trash
                     SwipeAction.STAR -> if (item.isStarred) AppIcons.StarOutline else AppIcons.Star
+                    SwipeAction.READ -> if (read) AppIcons.MarkUnread else AppIcons.MailOpen
                     SwipeAction.NONE -> null
                 }
                 if (icon != null) {
@@ -188,7 +199,7 @@ fun SwipeableMessageRow(
             }
         },
     ) {
-        MessageRow(item, selected, onClick, onLongClick, onToggleStar)
+        MessageRow(item.copy(isRead = read), selected, onClick, onLongClick, onToggleStar)
     }
 }
 

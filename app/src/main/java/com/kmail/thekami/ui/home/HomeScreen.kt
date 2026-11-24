@@ -279,6 +279,7 @@ fun HomeScreen(
                                                     onToggleStar = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); vm.toggleStar(item.id, !item.isStarred) },
                                                     onArchive = { vm.archiveOne(item.id) },
                                                     onDelete = { vm.deleteOne(item.id) },
+onToggleRead = { vm.toggleRead(item.id, !item.isRead) },
                                                 )
                                             }
                                         }

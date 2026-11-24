@@ -286,6 +286,13 @@ class HomeViewModel @Inject constructor(
     fun setStarred(starred: Boolean) = act { actions.setStarred(it, starred) }
     fun moveSelected(target: FolderEntity) = act { actions.moveToFolder(it, target) }
 
+    fun toggleRead(id: Long, read: Boolean) {
+        viewModelScope.launch {
+            val result = actions.setRead(listOf(id), read)
+            if (result != MessageActionResult.Ok) extras.update { it.copy(notice = result) }
+        }
+    }
+
     fun toggleStar(id: Long, starred: Boolean) {
         viewModelScope.launch {
             val result = actions.setStarred(listOf(id), starred)
