@@ -3,33 +3,55 @@ package com.kmail.thekami.ui.compose
 import com.kmail.thekami.ui.components.AppIcons
 import android.Manifest
 import android.content.pm.PackageManager
+import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,11 +65,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,6 +99,7 @@ fun ComposeScreen(
     var showDiscard by remember { mutableStateOf(false) }
     var fromMenu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
+    var subjectFocused by remember { mutableStateOf(false) }
     var body by remember { mutableStateOf(TextFieldValue()) }
     val sentMessage = stringResource(R.string.compose_sent)
     val contactsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { vm.refreshSuggestions() }
@@ -83,6 +109,12 @@ fun ComposeScreen(
             contactsPermission.launch(Manifest.permission.READ_CONTACTS)
         }
     }
+    // The page eases in once the draft is ready.
+    val appear by animateFloatAsState(
+        targetValue = if (state.loading) 0f else 1f,
+        animationSpec = tween(240),
+        label = "compose-appear",
+    )
 
     // Put the cursor at the top of the prefilled body, above the quote.
     LaunchedEffect(state.loading) {
@@ -132,16 +164,26 @@ fun ComposeScreen(
                     IconButton(onClick = { attachLauncher.launch(arrayOf("*/*")) }) {
                         Icon(AppIcons.Attachment, contentDescription = stringResource(R.string.compose_attach))
                     }
-                    IconButton(onClick = vm::send, enabled = canSend) {
-                        Icon(
-                            AppIcons.Send,
-                            contentDescription = stringResource(R.string.compose_send),
-                            tint = if (canSend) {
-                                MaterialTheme.colorScheme.primary
+                    Button(
+                        onClick = vm::send,
+                        enabled = canSend,
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        modifier = Modifier.height(36.dp),
+                    ) {
+                        AnimatedContent(targetState = state.sending, label = "send-icon") { sending ->
+                            if (sending) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = LocalContentColor.current,
+                                )
                             } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            },
-                        )
+                                Icon(AppIcons.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.compose_send))
                     }
                     Box {
                         IconButton(onClick = { moreMenu = true }) {
@@ -166,6 +208,7 @@ fun ComposeScreen(
                 .padding(padding)
                 .imePadding()
                 .fillMaxSize()
+                .graphicsLayer { this.alpha = appear }
                 .verticalScroll(rememberScrollState()),
         ) {
             if (state.sending) {
@@ -242,56 +285,52 @@ fun ComposeScreen(
                     )
                 }
             }
-            if (state.showCcBcc) {
-                RecipientRow(R.string.compose_cc, state.cc, vm::onCc, onFocus = { focusField(RecipientKind.CC) })
-                RecipientRow(R.string.compose_bcc, state.bcc, vm::onBcc, onFocus = { focusField(RecipientKind.BCC) })
+            AnimatedVisibility(
+                visible = state.showCcBcc,
+                enter = expandVertically(tween(240)) + fadeIn(tween(240)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(160)),
+            ) {
+                Column {
+                    RecipientRow(R.string.compose_cc, state.cc, vm::onCc, onFocus = { focusField(RecipientKind.CC) })
+                    RecipientRow(R.string.compose_bcc, state.bcc, vm::onBcc, onFocus = { focusField(RecipientKind.BCC) })
+                }
             }
             SuggestionPanel(state.suggestions, vm::pickSuggestion)
 
             // Subject
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp),
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 FlatInput(
                     value = state.subject,
                     onChange = vm::onSubject,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).onFocusChanged { subjectFocused = it.isFocused },
                     placeholder = stringResource(R.string.compose_subject),
+                    textStyle = MaterialTheme.typography.titleMedium,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 )
             }
-            FieldDivider()
+            FieldDivider(subjectFocused)
 
-            // Attachments
-            state.attachments.forEach { attachment ->
-                Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        AppIcons.Attachment,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        attachment.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 12.dp),
-                    )
-                    IconButton(onClick = { vm.removeAttachment(attachment) }) {
-                        Icon(
-                            AppIcons.Close,
-                            contentDescription = stringResource(R.string.compose_remove_attachment, attachment.name),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            // Attachments, as chips
+            AnimatedVisibility(
+                visible = state.attachments.isNotEmpty(),
+                enter = expandVertically(tween(240)) + fadeIn(tween(240)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(160)),
+            ) {
+                Column {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        state.attachments.forEach { attachment ->
+                            AttachmentChip(attachment) { vm.removeAttachment(attachment) }
+                        }
                     }
+                    FieldDivider()
                 }
             }
-            if (state.attachments.isNotEmpty()) FieldDivider()
 
             // Body: no box, the page itself is the writing surface.
             BasicTextField(
@@ -320,7 +359,9 @@ fun ComposeScreen(
             )
 
             // The signature of the From address. It is added when the message is sent.
-            SignaturePreview(state.signatureHtml)
+            Crossfade(targetState = state.signatureHtml, animationSpec = tween(220), label = "signature") { html ->
+                SignaturePreview(html)
+            }
         }
     }
 
@@ -369,9 +410,45 @@ private fun SignaturePreview(html: String) {
     }
 }
 
+/** A file that will be sent: name and size, with a small cross to take it off. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FieldDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+private fun AttachmentChip(attachment: ComposeAttachment, onRemove: () -> Unit) {
+    val context = LocalContext.current
+    InputChip(
+        selected = false,
+        onClick = {},
+        label = {
+            Text(
+                "${attachment.name} · ${Formatter.formatShortFileSize(context, attachment.bytes.size.toLong())}",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 200.dp),
+            )
+        },
+        leadingIcon = {
+            Icon(AppIcons.Attachment, contentDescription = null, modifier = Modifier.size(18.dp))
+        },
+        trailingIcon = {
+            Icon(
+                AppIcons.Close,
+                contentDescription = stringResource(R.string.compose_remove_attachment, attachment.name),
+                modifier = Modifier.size(18.dp).clip(CircleShape).clickable(onClick = onRemove),
+            )
+        },
+    )
+}
+
+/** A thin line under each field. It turns to the main color while that field has focus. */
+@Composable
+private fun FieldDivider(active: Boolean = false) {
+    val scheme = MaterialTheme.colorScheme
+    val color by animateColorAsState(
+        targetValue = if (active) scheme.primary else scheme.outlineVariant.copy(alpha = 0.6f),
+        animationSpec = tween(180),
+        label = "divider",
+    )
+    HorizontalDivider(color = color)
 }
 
 @Composable
@@ -392,6 +469,7 @@ private fun FlatInput(
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    textStyle: TextStyle = MaterialTheme.typography.bodyLarge,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     BasicTextField(
@@ -399,7 +477,7 @@ private fun FlatInput(
         onValueChange = onChange,
         modifier = modifier,
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        textStyle = textStyle.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         keyboardOptions = keyboardOptions,
         decorationBox = { inner ->
@@ -407,7 +485,7 @@ private fun FlatInput(
                 if (value.isEmpty() && placeholder != null) {
                     Text(
                         placeholder,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = textStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
@@ -425,6 +503,7 @@ private fun RecipientRow(
     onFocus: () -> Unit = {},
     trailing: @Composable () -> Unit = {},
 ) {
+    var focused by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 16.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -433,7 +512,10 @@ private fun RecipientRow(
         FlatInput(
             value = value,
             onChange = onChange,
-            modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocus() },
+            modifier = Modifier.weight(1f).onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocus()
+            },
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
                 autoCorrectEnabled = false,
@@ -442,7 +524,7 @@ private fun RecipientRow(
         )
         trailing()
     }
-    FieldDivider()
+    FieldDivider(focused)
 }
 
 @Composable
