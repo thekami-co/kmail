@@ -71,6 +71,8 @@ data class ComposeUiState(
     val showCcBcc: Boolean = false,
     val subject: String = "",
     val body: String = "",
+    /** The signature of the From address as HTML. Shown under the text and added when sending. */
+    val signatureHtml: String = "",
     val attachments: List<ComposeAttachment> = emptyList(),
     val loading: Boolean = true,
     val sending: Boolean = false,
@@ -133,15 +135,17 @@ class ComposeViewModel @Inject constructor(
         if (saved != null) {
             inReplyTo = saved.inReplyTo
             references = saved.references
+            val savedFrom = saved.accountId?.takeIf { id -> accounts.any { it.id == id } } ?: accounts.firstOrNull()?.id
             _state.value = ComposeUiState(
                 accounts = accounts,
-                fromId = saved.accountId?.takeIf { id -> accounts.any { it.id == id } } ?: accounts.firstOrNull()?.id,
+                fromId = savedFrom,
                 to = saved.to,
                 cc = saved.cc,
                 bcc = saved.bcc,
                 showCcBcc = saved.cc.isNotBlank() || saved.bcc.isNotBlank(),
                 subject = saved.subject,
                 body = saved.body,
+                signatureHtml = signatureStore.htmlFor(savedFrom),
                 attachments = saved.attachments.map { ComposeAttachment(it.name, it.mimeType, it.bytes) },
                 loading = false,
             )
@@ -189,7 +193,8 @@ class ComposeViewModel @Inject constructor(
             cc = cc,
             showCcBcc = cc.isNotBlank(),
             subject = subject,
-            body = ComposeBody.initial(signatureStore.textFor(fromId), quote),
+            body = ComposeBody.start(quote),
+            signatureHtml = signatureStore.htmlFor(fromId),
             attachments = attachments,
             loading = false,
         )
@@ -243,7 +248,8 @@ class ComposeViewModel @Inject constructor(
         _state.update { transform(it).copy(dirty = true, error = null) }
     }
 
-    fun onFrom(accountId: String) = edit { it.copy(fromId = accountId) }
+    /** Switching the From address also switches the signature shown under the text. */
+    fun onFrom(accountId: String) = edit { it.copy(fromId = accountId, signatureHtml = signatureStore.htmlFor(accountId)) }
     fun onTo(value: String) {
         edit { it.copy(to = value) }
         requestSuggestions(RecipientKind.TO, value)
@@ -404,7 +410,10 @@ class ComposeViewModel @Inject constructor(
                 fail(ComposeError.SendFailed(null))
                 return@launch
             }
-            val name = signatureStore.displayNameFor(account.id) ?: account.displayName.takeIf { it.isNotBlank() && it != account.emailAddress }
+            val name = signatureStore.displayNameFor(account.id)
+                ?: account.displayName.takeIf { it.isNotBlank() && it != account.emailAddress }
+            val signaturePlain = signatureStore.textFor(account.id)
+            val signatureHtml = signatureStore.htmlFor(account.id)
             val raw = withContext(Dispatchers.Default) {
                 MimeBuilder.build(
                     MimeBuilder.Draft(
@@ -412,10 +421,11 @@ class ComposeViewModel @Inject constructor(
                         to = to.valid,
                         cc = cc.valid,
                         subject = s.subject,
-                        body = s.body,
+                        body = ComposeBody.plain(s.body, signaturePlain),
                         attachments = s.attachments.map { MimeBuilder.Attachment(it.name, it.mimeType, it.bytes) },
                         inReplyTo = inReplyTo,
                         references = references,
+                        htmlBody = if (signatureHtml.isBlank()) null else ComposeBody.html(s.body, signatureHtml),
                     ),
                 )
             }

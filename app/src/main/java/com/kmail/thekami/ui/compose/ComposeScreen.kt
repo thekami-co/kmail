@@ -59,6 +59,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kmail.thekami.R
 import com.kmail.thekami.data.contacts.Suggestion
+import com.kmail.thekami.ui.settings.RichOps
 import com.kmail.thekami.ui.setup.messageRes
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +84,7 @@ fun ComposeScreen(
         }
     }
 
-    // Put the cursor at the top of the prefilled body, above signature and quote.
+    // Put the cursor at the top of the prefilled body, above the quote.
     LaunchedEffect(state.loading) {
         if (!state.loading) body = TextFieldValue(state.body, TextRange.Zero)
     }
@@ -317,6 +318,9 @@ fun ComposeScreen(
                     }
                 },
             )
+
+            // The signature of the From address. It is added when the message is sent.
+            SignaturePreview(state.signatureHtml)
         }
     }
 
@@ -335,6 +339,32 @@ fun ComposeScreen(
                     Text(stringResource(R.string.compose_discard_keep))
                 }
             },
+        )
+    }
+}
+
+/** The signature as it will look in the sent mail, below a thin line. It is not editable here. */
+@Composable
+private fun SignaturePreview(html: String) {
+    if (html.isBlank()) return
+    val linkColor = MaterialTheme.colorScheme.primary
+    val styled = remember(html, linkColor) {
+        val doc = RichOps.fromHtml(html)
+        val text = doc.text.trimEnd()
+        RichOps.annotate(text, doc.spans, linkColor)
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        Text(
+            stringResource(R.string.settings_signature_title),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+        )
+        Text(
+            styled,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

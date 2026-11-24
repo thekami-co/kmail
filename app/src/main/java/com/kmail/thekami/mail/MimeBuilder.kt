@@ -11,6 +11,8 @@ import java.util.UUID
 /**
  * Writes an RFC 5322 message by hand. It does not use MimeMessage.setContent(), which depends on
  * the activation mailcap registry. Bcc recipients are never written into the headers.
+ *
+ * With an [Draft.htmlBody] the text becomes multipart/alternative (plain text first, HTML second).
  */
 object MimeBuilder {
     class Attachment(val fileName: String, val mimeType: String, val bytes: ByteArray)
@@ -24,6 +26,7 @@ object MimeBuilder {
         val attachments: List<Attachment>,
         val inReplyTo: String?,
         val references: List<String>,
+        val htmlBody: String? = null,
     )
 
     private const val CRLF = "\r\n"
@@ -48,21 +51,19 @@ object MimeBuilder {
         header("MIME-Version", "1.0")
 
         val bodyBytes = encode(normalizeNewlines(draft.body).toByteArray(Charsets.UTF_8), "quoted-printable")
+        val htmlBytes = draft.htmlBody?.let {
+            encode(normalizeNewlines(it).toByteArray(Charsets.UTF_8), "quoted-printable")
+        }
+        val entity = bodyEntity(bodyBytes, htmlBytes)
+
         if (draft.attachments.isEmpty()) {
-            header("Content-Type", "text/plain; charset=UTF-8")
-            header("Content-Transfer-Encoding", "quoted-printable")
-            out.write(CRLF.toByteArray())
-            out.write(bodyBytes)
-            out.write(CRLF.toByteArray())
+            out.write(entity)
         } else {
             val boundary = "=_kmail_" + UUID.randomUUID().toString().replace("-", "")
             header("Content-Type", "multipart/mixed; boundary=\"$boundary\"")
             out.write(CRLF.toByteArray())
             out.write("--$boundary$CRLF".toByteArray())
-            out.write(("Content-Type: text/plain; charset=UTF-8$CRLF" +
-                "Content-Transfer-Encoding: quoted-printable$CRLF$CRLF").toByteArray())
-            out.write(bodyBytes)
-            out.write(CRLF.toByteArray())
+            out.write(entity)
             for (a in draft.attachments) {
                 val type = if (a.mimeType.contains('/')) a.mimeType else "application/octet-stream"
                 out.write("--$boundary$CRLF".toByteArray())
@@ -77,6 +78,34 @@ object MimeBuilder {
             out.write("--$boundary--$CRLF".toByteArray())
         }
         return out.toByteArray()
+    }
+
+    /**
+     * The headers, a blank line and the content of the text part: plain text alone,
+     * or plain text and HTML together as multipart/alternative.
+     */
+    private fun bodyEntity(plain: ByteArray, html: ByteArray?): ByteArray {
+        val e = ByteArrayOutputStream()
+        fun textPart(type: String, bytes: ByteArray) {
+            e.write(
+                ("Content-Type: $type; charset=UTF-8$CRLF" +
+                    "Content-Transfer-Encoding: quoted-printable$CRLF$CRLF").toByteArray(),
+            )
+            e.write(bytes)
+            e.write(CRLF.toByteArray())
+        }
+        if (html == null) {
+            textPart("text/plain", plain)
+        } else {
+            val alt = "=_kmail_alt_" + UUID.randomUUID().toString().replace("-", "")
+            e.write("Content-Type: multipart/alternative; boundary=\"$alt\"$CRLF$CRLF".toByteArray())
+            e.write("--$alt$CRLF".toByteArray())
+            textPart("text/plain", plain)
+            e.write("--$alt$CRLF".toByteArray())
+            textPart("text/html", html)
+            e.write("--$alt--$CRLF".toByteArray())
+        }
+        return e.toByteArray()
     }
 
     private fun address(address: String, name: String?): String =
