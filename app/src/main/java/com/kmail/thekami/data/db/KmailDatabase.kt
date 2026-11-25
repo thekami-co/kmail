@@ -9,8 +9,9 @@ import androidx.room.RoomDatabase
         FolderEntity::class,
         MessageEntity::class,
         CredentialEntity::class,
+        GmailIdEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class KmailDatabase : RoomDatabase() {
@@ -18,4 +19,5 @@ abstract class KmailDatabase : RoomDatabase() {
     abstract fun folderDao(): FolderDao
     abstract fun messageDao(): MessageDao
     abstract fun credentialDao(): CredentialDao
+    abstract fun gmailIdDao(): GmailIdDao
 }

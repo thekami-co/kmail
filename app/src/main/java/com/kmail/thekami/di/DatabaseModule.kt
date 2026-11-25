@@ -5,7 +5,9 @@ import androidx.room.Room
 import com.kmail.thekami.data.db.AccountDao
 import com.kmail.thekami.data.db.CredentialDao
 import com.kmail.thekami.data.db.FolderDao
+import com.kmail.thekami.data.db.GmailIdDao
 import com.kmail.thekami.data.db.KmailDatabase
+import com.kmail.thekami.data.db.MIGRATION_1_2
 import com.kmail.thekami.data.db.MessageDao
 import dagger.Module
 import dagger.Provides
@@ -21,7 +23,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): KmailDatabase =
-        Room.databaseBuilder(context, KmailDatabase::class.java, "kmail.db").build()
+        Room.databaseBuilder(context, KmailDatabase::class.java, "kmail.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideAccountDao(db: KmailDatabase): AccountDao = db.accountDao()
@@ -34,4 +38,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCredentialDao(db: KmailDatabase): CredentialDao = db.credentialDao()
+
+    @Provides
+    fun provideGmailIdDao(db: KmailDatabase): GmailIdDao = db.gmailIdDao()
 }

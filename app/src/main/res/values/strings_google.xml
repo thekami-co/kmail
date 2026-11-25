@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="google_option">Google account</string>
+    <string name="google_connect_picking">Choose your Google account…</string>
+    <string name="google_connect_authorizing">Asking Google for Gmail access…</string>
+    <string name="google_connect_consent">Waiting for your approval in the Google window…</string>
+    <string name="google_connect_validating">Checking your Gmail account…</string>
+    <string name="google_error_title">Couldn\'t connect Google</string>
+    <string name="google_error_cancelled">No Google account was selected, or the permission screen was closed.</string>
+    <string name="google_error_denied">Kmail needs permission to read, send and organise your Gmail. Allow all requested access and try again.</string>
+    <string name="google_error_network">No connection to Google. Check your internet and try again.</string>
+    <string name="google_error_play">Google Play services is missing or needs an update.</string>
+    <string name="google_error_misconfigured">Google doesn\'t recognise this build of Kmail. Google sign-in works only with the signed release version.</string>
+    <string name="google_error_api_disabled">The Gmail API is turned off for this app\'s Google Cloud project.</string>
+    <string name="google_error_exists">This account is already added to Kmail.</string>
+    <string name="google_error_mismatch">Google returned a different account than the one you chose. Please try again.</string>
+    <string name="google_error_unknown">Something went wrong while connecting to Google.</string>
+    <string name="google_retry">Try again</string>
+</resources>

@@ -3,6 +3,7 @@ package com.kmail.thekami.ui.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kmail.thekami.auth.google.GoogleAuthorizer
 import com.kmail.thekami.data.repo.AccountRepository
 import com.kmail.thekami.data.repo.BodyStore
 import com.kmail.thekami.data.repo.MessageBodyCache
@@ -12,6 +13,7 @@ import com.kmail.thekami.data.security.PinPolicy
 import com.kmail.thekami.data.security.PinVerify
 import com.kmail.thekami.data.security.RecoveryPolicy
 import com.kmail.thekami.domain.model.Account
+import com.kmail.thekami.domain.model.AccountProvider
 import com.kmail.thekami.sync.SyncPrefs
 import com.kmail.thekami.sync.SyncScheduler
 import com.kmail.thekami.sync.SyncSettings
@@ -50,6 +52,7 @@ class SettingsViewModel @Inject constructor(
     private val appearanceStore: AppearanceStore,
     private val syncPrefs: SyncPrefs,
     private val scheduler: SyncScheduler,
+    private val googleAuthorizer: GoogleAuthorizer,
 ) : ViewModel() {
 
     /** Null until the first load, so "no accounts" can be told apart from "not loaded yet". */
@@ -142,6 +145,8 @@ class SettingsViewModel @Inject constructor(
             val check = store.verify(pin.orEmpty())
             if (check !is PinVerify.Ok) return check
         }
+        val account = accountRepository.getAccount(id)
+        if (account?.provider == AccountProvider.GMAIL) googleAuthorizer.revoke(account.emailAddress)
         accountRepository.removeAccount(id)
         cache.clear()
         bodies.clear()

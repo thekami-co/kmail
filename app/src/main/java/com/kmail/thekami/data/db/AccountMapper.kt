@@ -17,6 +17,7 @@ internal fun AccountEntity.toDomain() = Account(
     colorArgb = colorArgb,
     settings = AccountSettings(imap.toDomain(), smtp.toDomain()),
     createdAtMillis = createdAtMillis,
+    provider = providerType,
 )
 
 internal fun Account.toEntity() = AccountEntity(
@@ -27,4 +28,5 @@ internal fun Account.toEntity() = AccountEntity(
     imap = settings.imap.toColumns(),
     smtp = settings.smtp.toColumns(),
     createdAtMillis = createdAtMillis,
+    providerType = provider,
 )

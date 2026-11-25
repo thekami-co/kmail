@@ -43,6 +43,7 @@ import com.kmail.thekami.ui.setup.ConnectState
 import com.kmail.thekami.ui.setup.ConnectedScreen
 import com.kmail.thekami.ui.setup.ConnectingScreen
 import com.kmail.thekami.ui.setup.CredentialsScreen
+import com.kmail.thekami.ui.setup.GoogleConnectScreen
 import com.kmail.thekami.ui.setup.ServerScreen
 import com.kmail.thekami.ui.setup.ServerSide
 import com.kmail.thekami.ui.setup.SetupViewModel
@@ -84,12 +85,24 @@ fun KmailNavHost(
                 onEmailChange = vm::onEmailChange,
                 onPasswordChange = vm::onPasswordChange,
                 onContinue = { if (vm.submitCredentials()) navController.navigate(Routes.INCOMING) },
+                onGoogle = { navController.navigate(Routes.GOOGLE) },
                 onScanQr = { navController.navigate(Routes.SCAN) },
                 onImportFile = { pickFile.launch(arrayOf("*/*")) },
             )
             TransferImportHost(
                 importVm = importVm,
                 onOpenInbox = { navController.navigate(Routes.HOME) { popUpTo(navController.graph.id) { inclusive = true } } },
+            )
+        }
+
+        composable(Routes.GOOGLE) {
+            GoogleConnectScreen(
+                onOpenInbox = { navController.navigate(Routes.HOME) { popUpTo(navController.graph.id) { inclusive = true } } },
+                onAddAnother = {
+                    vm.startNewAccount()
+                    navController.navigate(Routes.CREDENTIALS) { popUpTo(Routes.CREDENTIALS) { inclusive = true } }
+                },
+                onBack = { navController.popBackStack() },
             )
         }
 

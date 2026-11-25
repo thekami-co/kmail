@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="google_option">Google অ্যাকাউন্ট</string>
+    <string name="google_connect_picking">আপনার Google অ্যাকাউন্ট বেছে নিন…</string>
+    <string name="google_connect_authorizing">Google-এর কাছে Gmail অ্যাক্সেস চাওয়া হচ্ছে…</string>
+    <string name="google_connect_consent">Google-এর উইন্ডোতে আপনার অনুমতির অপেক্ষায়…</string>
+    <string name="google_connect_validating">আপনার Gmail অ্যাকাউন্ট যাচাই করা হচ্ছে…</string>
+    <string name="google_error_title">Google সংযোগ করা যায়নি</string>
+    <string name="google_error_cancelled">কোনো Google অ্যাকাউন্ট বাছাই করা হয়নি, অথবা অনুমতির স্ক্রিন বন্ধ করা হয়েছে।</string>
+    <string name="google_error_denied">Kmail-এর আপনার Gmail পড়া, পাঠানো ও সাজানোর অনুমতি দরকার। চাওয়া সব অনুমতি দিয়ে আবার চেষ্টা করুন।</string>
+    <string name="google_error_network">Google-এর সাথে সংযোগ নেই। ইন্টারনেট দেখে আবার চেষ্টা করুন।</string>
+    <string name="google_error_play">Google Play services নেই বা আপডেট দরকার।</string>
+    <string name="google_error_misconfigured">Google এই Kmail বিল্ডটি চিনতে পারছে না। Google সাইন-ইন শুধু signed release সংস্করণে কাজ করে।</string>
+    <string name="google_error_api_disabled">এই অ্যাপের Google Cloud প্রজেক্টে Gmail API বন্ধ আছে।</string>
+    <string name="google_error_exists">এই অ্যাকাউন্ট ইতিমধ্যে Kmail-এ যোগ করা আছে।</string>
+    <string name="google_error_mismatch">আপনার বাছাই করা অ্যাকাউন্টের বদলে Google অন্য অ্যাকাউন্ট ফেরত দিয়েছে। আবার চেষ্টা করুন।</string>
+    <string name="google_error_unknown">Google-এর সাথে সংযোগের সময় কিছু ভুল হয়েছে।</string>
+    <string name="google_retry">আবার চেষ্টা করুন</string>
+</resources>

@@ -43,6 +43,8 @@ fun CredentialsScreen(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onContinue: () -> Unit,
+    onGoogle: () -> Unit,
+    onGoogle: () -> Unit,
     onScanQr: () -> Unit,
     onImportFile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -122,6 +124,10 @@ fun CredentialsScreen(
     if (showOtherWays) {
         OtherWaysDialog(
             onDismiss = { showOtherWays = false },
+            onGoogle = {
+                showOtherWays = false
+                onGoogle()
+            },
             onScanQr = {
                 showOtherWays = false
                 onScanQr()
@@ -137,6 +143,8 @@ fun CredentialsScreen(
 @Composable
 private fun OtherWaysDialog(
     onDismiss: () -> Unit,
+    onGoogle: () -> Unit,
+    onGoogle: () -> Unit,
     onScanQr: () -> Unit,
     onImportFile: () -> Unit,
 ) {
@@ -151,6 +159,7 @@ private fun OtherWaysDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.size(8.dp))
+                WayRow(AppIcons.Mail, stringResource(R.string.google_option), onGoogle)
                 WayRow(AppIcons.QrScan, stringResource(R.string.credentials_scan_qr), onScanQr)
                 WayRow(AppIcons.FolderOpen, stringResource(R.string.credentials_import_file), onImportFile)
             }

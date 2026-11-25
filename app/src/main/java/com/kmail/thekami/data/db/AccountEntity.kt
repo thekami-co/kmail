@@ -4,6 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.kmail.thekami.domain.model.AccountProvider
 
 /** Account metadata and server settings. Passwords are never stored here. */
 @Entity(
@@ -18,4 +19,5 @@ data class AccountEntity(
     @Embedded(prefix = "imap_") val imap: EndpointColumns,
     @Embedded(prefix = "smtp_") val smtp: EndpointColumns,
     val createdAtMillis: Long,
+    val providerType: AccountProvider = AccountProvider.IMAP,
 )
