@@ -1,46 +1,53 @@
 package com.kmail.thekami.ui.setup
 
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -55,12 +62,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -74,9 +86,24 @@ import com.kmail.thekami.ui.components.AppIcons
 import com.kmail.thekami.ui.components.HOW_TO_USE_URL
 import com.kmail.thekami.ui.components.KmailWordmark
 import com.kmail.thekami.ui.components.LegalLinks
+import com.kmail.thekami.ui.components.NoteBanner
 import com.kmail.thekami.ui.components.openLinkAction
 
 private val FieldShape = RoundedCornerShape(16.dp)
+
+/** Providers that open the email form. Google has its own one-tap flow and is handled separately. */
+private enum class Provider(
+    @StringRes val titleRes: Int,
+    @StringRes val subRes: Int,
+    @StringRes val nameRes: Int?,
+    @StringRes val noteRes: Int?,
+    val placeholder: String,
+) {
+    MICROSOFT(R.string.provider_microsoft_title, R.string.provider_microsoft_sub, R.string.provider_microsoft_name, R.string.note_oauth, "name@outlook.com"),
+    YAHOO(R.string.provider_yahoo_title, R.string.provider_yahoo_sub, R.string.provider_yahoo_title, R.string.note_app_password, "name@yahoo.com"),
+    ICLOUD(R.string.provider_icloud_title, R.string.provider_icloud_sub, R.string.provider_icloud_title, R.string.note_app_password, "name@icloud.com"),
+    OTHER(R.string.provider_other_title, R.string.provider_other_sub, null, null, "name@example.com"),
+}
 
 @Composable
 fun CredentialsScreen(
@@ -91,10 +118,13 @@ fun CredentialsScreen(
 ) {
     var showHelp by rememberSaveable { mutableStateOf(false) }
     var showOtherWays by rememberSaveable { mutableStateOf(false) }
+    // -1 = choose where the email lives, otherwise the ordinal of the chosen provider.
+    var selected by rememberSaveable { mutableStateOf(-1) }
     val openLink = openLinkAction()
-    val scheme = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
 
-    // Entrance animation: skipped when the system animations are off, and not replayed on rotation.
+    // Entrance animation: skipped when system animations are off, and not replayed on rotation.
     val context = LocalContext.current
     val animate = remember {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
@@ -102,143 +132,56 @@ fun CredentialsScreen(
     var shown by rememberSaveable { mutableStateOf(!animate) }
     LaunchedEffect(Unit) { shown = true }
 
+    val goBack = {
+        focusManager.clearFocus()
+        keyboard?.hide()
+        selected = -1
+    }
+    BackHandler(enabled = selected >= 0) { goBack() }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(scheme.background)
+            .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).heightIn(min = 64.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            KmailWordmark()
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = { showHelp = true }) {
-                Icon(
-                    imageVector = AppIcons.Info,
-                    contentDescription = stringResource(R.string.credentials_help_description),
-                    tint = scheme.onSurfaceVariant,
+        AnimatedContent(
+            targetState = selected,
+            modifier = Modifier.weight(1f),
+            transitionSpec = {
+                val forward = targetState >= 0
+                val offset = if (forward) 1 else -1
+                (
+                    slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it / 6 * offset } +
+                        fadeIn(tween(300))
+                    ) togetherWith (
+                    slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it / 6 * offset } +
+                        fadeOut(tween(150))
+                    )
+            },
+            label = "loginStep",
+        ) { step ->
+            if (step < 0) {
+                ChooseStep(
+                    shown = shown,
+                    onHelp = { showHelp = true },
+                    onGoogle = onGoogle,
+                    onPick = { selected = it.ordinal },
+                    onOtherWays = { showOtherWays = true },
+                )
+            } else {
+                FormStep(
+                    provider = Provider.entries[step],
+                    state = state,
+                    onEmailChange = onEmailChange,
+                    onPasswordChange = onPasswordChange,
+                    onContinue = onContinue,
+                    onBack = goBack,
+                    onHelp = { showHelp = true },
                 )
             }
         }
-
-        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            val viewport = maxHeight
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .heightIn(min = viewport),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = 440.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                ) {
-                    Reveal(shown, 0) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = stringResource(R.string.credentials_title),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier.semantics { heading() },
-                            )
-                            Text(
-                                text = stringResource(R.string.credentials_subtitle),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = scheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Reveal(shown, 1) {
-                        OutlinedButton(
-                            onClick = onGoogle,
-                            modifier = Modifier.padding(top = 32.dp).fillMaxWidth().heightIn(min = 56.dp),
-                            shape = FieldShape,
-                            border = BorderStroke(1.dp, scheme.outlineVariant),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = scheme.onSurface),
-                        ) {
-                            Icon(GoogleG, contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(22.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.login_google_button), style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                    Reveal(shown, 2) {
-                        Row(
-                            modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = scheme.outlineVariant)
-                            Text(
-                                text = stringResource(R.string.login_divider),
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = scheme.onSurfaceVariant,
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = scheme.outlineVariant)
-                        }
-                    }
-                    Reveal(shown, 3) {
-                        LoginField(
-                            value = state.email,
-                            onValueChange = onEmailChange,
-                            label = stringResource(R.string.credentials_email_label),
-                            icon = Icons.Rounded.Mail,
-                            errorText = if (state.emailError) stringResource(R.string.credentials_email_error) else null,
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                            modifier = Modifier.padding(top = 24.dp),
-                        )
-                    }
-                    Reveal(shown, 4) {
-                        LoginField(
-                            value = state.password,
-                            onValueChange = onPasswordChange,
-                            label = stringResource(R.string.login_password_label),
-                            icon = Icons.Rounded.Lock,
-                            errorText = if (state.passwordError) stringResource(R.string.login_password_error) else null,
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                            onDone = onContinue,
-                            isPassword = true,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                    Reveal(shown, 5) {
-                        Button(
-                            onClick = onContinue,
-                            modifier = Modifier.padding(top = 20.dp).fillMaxWidth().heightIn(min = 56.dp),
-                            shape = FieldShape,
-                        ) {
-                            Text(stringResource(R.string.credentials_continue), style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                    Reveal(shown, 6) {
-                        TextButton(
-                            onClick = { showOtherWays = true },
-                            modifier = Modifier.padding(top = 4.dp).fillMaxWidth().heightIn(min = 48.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.login_other_ways),
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            LegalLinks()
-        }
     }
-
     if (showHelp) {
         AlertDialog(
             onDismissRequest = { showHelp = false },
@@ -272,6 +215,256 @@ fun CredentialsScreen(
     }
 }
 
+// ---- step 1: where does your email live? ----
+
+@Composable
+private fun ChooseStep(
+    shown: Boolean,
+    onHelp: () -> Unit,
+    onGoogle: () -> Unit,
+    onPick: (Provider) -> Unit,
+    onOtherWays: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize()) {
+        TopBar(onHelp = onHelp, onBack = null)
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Column(
+                modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            ) {
+                Reveal(shown, 0) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.credentials_title),
+                            style = MaterialTheme.typography.headlineLarge,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        Text(
+                            text = stringResource(R.string.login_choose_subtitle),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Reveal(shown, 1) {
+                    Column(Modifier.padding(top = 24.dp)) {
+                        ProviderRow(
+                            leading = { Icon(GoogleG, contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(24.dp)) },
+                            title = stringResource(R.string.provider_google_title),
+                            subtitle = stringResource(R.string.provider_google_sub),
+                            badge = stringResource(R.string.login_recommended),
+                            onClick = onGoogle,
+                        )
+                        ProviderRow(
+                            leading = { Monogram("O") },
+                            title = stringResource(Provider.MICROSOFT.titleRes),
+                            subtitle = stringResource(Provider.MICROSOFT.subRes),
+                            onClick = { onPick(Provider.MICROSOFT) },
+                        )
+                        ProviderRow(
+                            leading = { Monogram("Y") },
+                            title = stringResource(Provider.YAHOO.titleRes),
+                            subtitle = stringResource(Provider.YAHOO.subRes),
+                            onClick = { onPick(Provider.YAHOO) },
+                        )
+                        ProviderRow(
+                            leading = { Monogram("i") },
+                            title = stringResource(Provider.ICLOUD.titleRes),
+                            subtitle = stringResource(Provider.ICLOUD.subRes),
+                            onClick = { onPick(Provider.ICLOUD) },
+                        )
+                        ProviderRow(
+                            leading = {
+                                Icon(Icons.Rounded.AlternateEmail, contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                            },
+                            title = stringResource(Provider.OTHER.titleRes),
+                            subtitle = stringResource(Provider.OTHER.subRes),
+                            onClick = { onPick(Provider.OTHER) },
+                            showDivider = false,
+                        )
+                    }
+                }
+                Reveal(shown, 2) {
+                    Column(Modifier.padding(top = 16.dp)) {
+                        TextButton(
+                            onClick = onOtherWays,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Text(stringResource(R.string.login_other_ways), style = MaterialTheme.typography.labelLarge)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Rounded.Lock, contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                text = stringResource(R.string.login_privacy_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        // No keyboard on this step, so the links can stay pinned to the bottom.
+        Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+            LegalLinks()
+        }
+    }
+}
+
+@Composable
+private fun ProviderRow(
+    leading: @Composable () -> Unit,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    badge: String? = null,
+    showDivider: Boolean = true,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.large)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(vertical = 14.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(44.dp).background(scheme.surfaceContainerHigh, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { leading() }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    if (badge != null) {
+                        Text(badge, style = MaterialTheme.typography.labelSmall, color = scheme.primary)
+                    }
+                }
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = scheme.onSurfaceVariant)
+        }
+        if (showDivider) HorizontalDivider(modifier = Modifier.padding(start = 64.dp), color = scheme.outlineVariant)
+    }
+}
+
+@Composable
+private fun Monogram(letter: String) {
+    Text(letter, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+// ---- step 2: email and password ----
+
+@Composable
+private fun FormStep(
+    provider: Provider,
+    state: CredentialsUiState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+    onHelp: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    Column(Modifier.fillMaxSize()) {
+        TopBar(onHelp = onHelp, onBack = onBack)
+        // The links live inside the scrolling area: they must not ride up with the keyboard.
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Column(
+                modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            ) {
+                val name = provider.nameRes?.let { stringResource(it) }
+                Text(
+                    text = if (name != null) stringResource(R.string.login_form_title, name) else stringResource(R.string.credentials_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = if (name != null) stringResource(R.string.login_form_subtitle) else stringResource(R.string.credentials_subtitle),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                provider.noteRes?.let { NoteBanner(text = stringResource(it), modifier = Modifier.padding(top = 16.dp)) }
+                LoginField(
+                    value = state.email,
+                    onValueChange = onEmailChange,
+                    label = stringResource(R.string.credentials_email_label),
+                    placeholder = provider.placeholder,
+                    icon = Icons.Rounded.Mail,
+                    errorText = if (state.emailError) stringResource(R.string.credentials_email_error) else null,
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                    modifier = Modifier.padding(top = 24.dp).focusRequester(focus),
+                )
+                LoginField(
+                    value = state.password,
+                    onValueChange = onPasswordChange,
+                    label = stringResource(R.string.login_password_label),
+                    placeholder = null,
+                    icon = Icons.Rounded.Lock,
+                    errorText = if (state.passwordError) stringResource(R.string.login_password_error) else null,
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                    onDone = onContinue,
+                    isPassword = true,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Button(
+                    onClick = onContinue,
+                    modifier = Modifier.padding(top = 20.dp).fillMaxWidth().heightIn(min = 56.dp),
+                    shape = FieldShape,
+                ) {
+                    Text(stringResource(R.string.credentials_continue), style = MaterialTheme.typography.titleMedium)
+                }
+                Spacer(Modifier.height(32.dp))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LegalLinks() }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopBar(onHelp: () -> Unit, onBack: (() -> Unit)?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).heightIn(min = 64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.login_back))
+            }
+        } else {
+            Box(Modifier.padding(start = 12.dp)) { KmailWordmark() }
+        }
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = onHelp) {
+            Icon(
+                imageVector = AppIcons.Info,
+                contentDescription = stringResource(R.string.credentials_help_description),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 /** Fades in and slides up a little, one step after the previous section. */
 @Composable
 private fun Reveal(visible: Boolean, index: Int, content: @Composable () -> Unit) {
@@ -291,6 +484,7 @@ private fun LoginField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    placeholder: String?,
     icon: ImageVector,
     errorText: String?,
     keyboardType: KeyboardType,
@@ -305,6 +499,11 @@ private fun LoginField(
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
+        placeholder = if (placeholder != null) {
+            { Text(placeholder) }
+        } else {
+            null
+        },
         singleLine = true,
         isError = errorText != null,
         shape = FieldShape,

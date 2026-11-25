@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="login_google_button">Google দিয়ে চালিয়ে যান</string>
-    <string name="login_divider">অথবা ইমেইল দিয়ে চালিয়ে যান</string>
+    <string name="login_choose_subtitle">আপনার ইমেইল কোথায় আছে সেটি বেছে নিন।</string>
+    <string name="login_recommended">প্রস্তাবিত</string>
+    <string name="login_back">পেছনে</string>
+    <string name="login_privacy_note">পাসওয়ার্ড এই ডিভাইসে এনক্রিপ্টেড থাকে।</string>
+    <string name="login_form_title">%1$s-এ সাইন ইন করুন</string>
+    <string name="login_form_subtitle">আপনার ইমেইল ঠিকানা ও পাসওয়ার্ড লিখুন।</string>
     <string name="login_password_label">পাসওয়ার্ড</string>
     <string name="login_password_error">পাসওয়ার্ড লিখুন</string>
     <string name="login_show_password">পাসওয়ার্ড দেখান</string>
     <string name="login_hide_password">পাসওয়ার্ড লুকান</string>
+    <string name="provider_google_title">Google</string>
+    <string name="provider_google_sub">Gmail ও Google Workspace · পাসওয়ার্ড লাগে না</string>
+    <string name="provider_microsoft_title">Outlook / Microsoft</string>
+    <string name="provider_microsoft_sub">Outlook, Hotmail ও Live</string>
+    <string name="provider_microsoft_name">Outlook</string>
+    <string name="provider_yahoo_title">Yahoo Mail</string>
+    <string name="provider_yahoo_sub">অ্যাপ পাসওয়ার্ড লাগে</string>
+    <string name="provider_icloud_title">iCloud Mail</string>
+    <string name="provider_icloud_sub">অ্যাপ-স্পেসিফিক পাসওয়ার্ড লাগে</string>
+    <string name="provider_other_title">অন্য ইমেইল</string>
+    <string name="provider_other_sub">অফিস, স্কুল, Zoho, Fastmail বা নিজের ডোমেইন</string>
 </resources>
