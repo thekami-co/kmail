@@ -44,7 +44,6 @@ fun CredentialsScreen(
     onPasswordChange: (String) -> Unit,
     onContinue: () -> Unit,
     onGoogle: () -> Unit,
-    onGoogle: () -> Unit,
     onScanQr: () -> Unit,
     onImportFile: () -> Unit,
     modifier: Modifier = Modifier,
@@ -143,7 +142,6 @@ fun CredentialsScreen(
 @Composable
 private fun OtherWaysDialog(
     onDismiss: () -> Unit,
-    onGoogle: () -> Unit,
     onGoogle: () -> Unit,
     onScanQr: () -> Unit,
     onImportFile: () -> Unit,
