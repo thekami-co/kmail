@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_google_button">Google দিয়ে চালিয়ে যান</string>
+    <string name="login_divider">অথবা ইমেইল দিয়ে চালিয়ে যান</string>
+    <string name="login_password_label">পাসওয়ার্ড</string>
+    <string name="login_password_error">পাসওয়ার্ড লিখুন</string>
+    <string name="login_show_password">পাসওয়ার্ড দেখান</string>
+    <string name="login_hide_password">পাসওয়ার্ড লুকান</string>
+</resources>
