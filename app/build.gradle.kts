@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.browser)
     ksp(libs.hilt.compiler)
     ksp(libs.room.compiler)
 

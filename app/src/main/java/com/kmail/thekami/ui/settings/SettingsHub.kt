@@ -46,6 +46,7 @@ fun SettingsHub(
     onAccounts: () -> Unit,
     onSignature: () -> Unit,
     onInbox: () -> Unit,
+    onLinks: () -> Unit,
     onAppearance: () -> Unit,
     onLanguage: () -> Unit,
     onSync: () -> Unit,
@@ -71,6 +72,7 @@ fun SettingsHub(
             title = stringResource(R.string.settings_group_personalize),
             entries = buildList {
                 add(SettingsEntry(AppIcons.Palette, stringResource(R.string.settings_appearance), themeSummary, onClick = onAppearance))
+                add(SettingsEntry(AppIcons.OpenInNew, stringResource(R.string.settings_links), onClick = onLinks))
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     add(SettingsEntry(AppIcons.Language, stringResource(R.string.settings_language), currentLanguageLabel(), onClick = onLanguage))
                 }

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="legal_privacy_policy">Privacy policy</string>
-    <string name="legal_how_to_use">How to use</string>
-    <string name="login_other_ways">Other ways to log in</string>
-    <string name="login_other_ways_intro">Already use Kmail on another device? Bring your accounts over by scanning a QR code or importing a file.</string>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="settings_links">Open links</string>
+    <string name="links_intro">Choose where links from emails and the app open.</string>
+    <string name="links_in_app">In-app browser</string>
+    <string name="links_in_app_desc">Opens inside Kmail, and Back brings you here.</string>
+    <string name="links_external">External browser</string>
+    <string name="links_external_desc">Opens in your default browser app.</string>
 </resources>

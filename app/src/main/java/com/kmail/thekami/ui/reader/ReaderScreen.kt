@@ -1,5 +1,6 @@
 package com.kmail.thekami.ui.reader
 
+import com.kmail.thekami.ui.components.LinkOpener
 import com.kmail.thekami.ui.components.AppIcons
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -365,9 +366,7 @@ fun ReaderScreen(
                     onClick = {
                         pendingLink = null
                         try {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE),
-                            )
+                            LinkOpener.open(context, url)
                         } catch (e: ActivityNotFoundException) {
                             // no app can open this link
                         }

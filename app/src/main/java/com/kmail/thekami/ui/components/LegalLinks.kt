@@ -10,7 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.kmail.thekami.R
@@ -18,11 +18,11 @@ import com.kmail.thekami.R
 internal const val PRIVACY_URL = "https://blog.thekami.tech/posts/kmail-privacy-policy/"
 internal const val HOW_TO_USE_URL = "https://blog.thekami.tech/posts/kmail-how-to-use/"
 
-/** Returns a function that opens a link, and does nothing if the phone has no browser. */
+/** Returns a function that opens a link as chosen in Settings (in the app or in the browser). */
 @Composable
 internal fun openLinkAction(): (String) -> Unit {
-    val handler = LocalUriHandler.current
-    return { url -> runCatching { handler.openUri(url) } }
+    val context = LocalContext.current
+    return { url -> LinkOpener.open(context, url) }
 }
 
 /** Privacy policy and usage guide, as two quiet text links. */

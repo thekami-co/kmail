@@ -69,7 +69,7 @@ import com.kmail.thekami.ui.components.openLinkAction
 import com.kmail.thekami.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
-private enum class SettingsPage { Hub, Accounts, Signature, Appearance, Language, Sync, Privacy, Inbox, About }
+private enum class SettingsPage { Hub, Accounts, Signature, Appearance, Language, Sync, Privacy, Inbox, Links, About }
 
 private sealed interface SettingsDialog {
     data object SetPin : SettingsDialog
@@ -141,6 +141,7 @@ fun SettingsScreen(
                 SettingsPage.Sync -> R.string.settings_sync
                 SettingsPage.Privacy -> R.string.settings_privacy
                 SettingsPage.Inbox -> R.string.settings_inbox
+                SettingsPage.Links -> R.string.settings_links
                 SettingsPage.About -> R.string.settings_about
             },
         )
@@ -315,6 +316,10 @@ fun SettingsScreen(
                         InboxSettingsPage()
                     }
 
+                    SettingsPage.Links.name -> {
+                        LinksPage()
+                    }
+
                     SettingsPage.About.name -> {
                         LinkRow(stringResource(R.string.settings_privacy_policy)) { openLink(PRIVACY_URL) }
                         LinkRow(stringResource(R.string.legal_how_to_use)) { openLink(HOW_TO_USE_URL) }
@@ -333,6 +338,7 @@ fun SettingsScreen(
                         onSync = { pageName = SettingsPage.Sync.name },
                         onPrivacy = { pageName = SettingsPage.Privacy.name },
                         onAbout = { pageName = SettingsPage.About.name },
+                        onLinks = { pageName = SettingsPage.Links.name },
                     )
                 }
             }
