@@ -2,7 +2,6 @@ package com.kmail.thekami.ui.setup
 
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -86,24 +85,9 @@ import com.kmail.thekami.ui.components.AppIcons
 import com.kmail.thekami.ui.components.HOW_TO_USE_URL
 import com.kmail.thekami.ui.components.KmailWordmark
 import com.kmail.thekami.ui.components.LegalLinks
-import com.kmail.thekami.ui.components.NoteBanner
 import com.kmail.thekami.ui.components.openLinkAction
 
 private val FieldShape = RoundedCornerShape(16.dp)
-
-/** Providers that open the email form. Google has its own one-tap flow and is handled separately. */
-private enum class Provider(
-    @StringRes val titleRes: Int,
-    @StringRes val subRes: Int,
-    @StringRes val nameRes: Int?,
-    @StringRes val noteRes: Int?,
-    val placeholder: String,
-) {
-    MICROSOFT(R.string.provider_microsoft_title, R.string.provider_microsoft_sub, R.string.provider_microsoft_name, R.string.note_oauth, "name@outlook.com"),
-    YAHOO(R.string.provider_yahoo_title, R.string.provider_yahoo_sub, R.string.provider_yahoo_title, R.string.note_app_password, "name@yahoo.com"),
-    ICLOUD(R.string.provider_icloud_title, R.string.provider_icloud_sub, R.string.provider_icloud_title, R.string.note_app_password, "name@icloud.com"),
-    OTHER(R.string.provider_other_title, R.string.provider_other_sub, null, null, "name@example.com"),
-}
 
 @Composable
 fun CredentialsScreen(
@@ -118,8 +102,8 @@ fun CredentialsScreen(
 ) {
     var showHelp by rememberSaveable { mutableStateOf(false) }
     var showOtherWays by rememberSaveable { mutableStateOf(false) }
-    // -1 = choose where the email lives, otherwise the ordinal of the chosen provider.
-    var selected by rememberSaveable { mutableStateOf(-1) }
+    // false = choose Google or other email, true = email and password form.
+    var showForm by rememberSaveable { mutableStateOf(false) }
     val openLink = openLinkAction()
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -135,9 +119,9 @@ fun CredentialsScreen(
     val goBack = {
         focusManager.clearFocus()
         keyboard?.hide()
-        selected = -1
+        showForm = false
     }
-    BackHandler(enabled = selected >= 0) { goBack() }
+    BackHandler(enabled = showForm) { goBack() }
 
     Column(
         modifier = modifier
@@ -146,11 +130,10 @@ fun CredentialsScreen(
             .safeDrawingPadding(),
     ) {
         AnimatedContent(
-            targetState = selected,
+            targetState = showForm,
             modifier = Modifier.weight(1f),
             transitionSpec = {
-                val forward = targetState >= 0
-                val offset = if (forward) 1 else -1
+                val offset = if (targetState) 1 else -1
                 (
                     slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it / 6 * offset } +
                         fadeIn(tween(300))
@@ -160,18 +143,17 @@ fun CredentialsScreen(
                     )
             },
             label = "loginStep",
-        ) { step ->
-            if (step < 0) {
+        ) { form ->
+            if (!form) {
                 ChooseStep(
                     shown = shown,
                     onHelp = { showHelp = true },
                     onGoogle = onGoogle,
-                    onPick = { selected = it.ordinal },
+                    onOther = { showForm = true },
                     onOtherWays = { showOtherWays = true },
                 )
             } else {
                 FormStep(
-                    provider = Provider.entries[step],
                     state = state,
                     onEmailChange = onEmailChange,
                     onPasswordChange = onPasswordChange,
@@ -182,6 +164,7 @@ fun CredentialsScreen(
             }
         }
     }
+
     if (showHelp) {
         AlertDialog(
             onDismissRequest = { showHelp = false },
@@ -215,14 +198,14 @@ fun CredentialsScreen(
     }
 }
 
-// ---- step 1: where does your email live? ----
+// ---- step 1: Google or other email ----
 
 @Composable
 private fun ChooseStep(
     shown: Boolean,
     onHelp: () -> Unit,
     onGoogle: () -> Unit,
-    onPick: (Provider) -> Unit,
+    onOther: () -> Unit,
     onOtherWays: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -259,30 +242,12 @@ private fun ChooseStep(
                             onClick = onGoogle,
                         )
                         ProviderRow(
-                            leading = { Monogram("O") },
-                            title = stringResource(Provider.MICROSOFT.titleRes),
-                            subtitle = stringResource(Provider.MICROSOFT.subRes),
-                            onClick = { onPick(Provider.MICROSOFT) },
-                        )
-                        ProviderRow(
-                            leading = { Monogram("Y") },
-                            title = stringResource(Provider.YAHOO.titleRes),
-                            subtitle = stringResource(Provider.YAHOO.subRes),
-                            onClick = { onPick(Provider.YAHOO) },
-                        )
-                        ProviderRow(
-                            leading = { Monogram("i") },
-                            title = stringResource(Provider.ICLOUD.titleRes),
-                            subtitle = stringResource(Provider.ICLOUD.subRes),
-                            onClick = { onPick(Provider.ICLOUD) },
-                        )
-                        ProviderRow(
                             leading = {
                                 Icon(Icons.Rounded.AlternateEmail, contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                             },
-                            title = stringResource(Provider.OTHER.titleRes),
-                            subtitle = stringResource(Provider.OTHER.subRes),
-                            onClick = { onPick(Provider.OTHER) },
+                            title = stringResource(R.string.provider_other_title),
+                            subtitle = stringResource(R.string.provider_other_sub),
+                            onClick = onOther,
                             showDivider = false,
                         )
                     }
@@ -358,16 +323,10 @@ private fun ProviderRow(
     }
 }
 
-@Composable
-private fun Monogram(letter: String) {
-    Text(letter, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
 // ---- step 2: email and password ----
 
 @Composable
 private fun FormStep(
-    provider: Provider,
     state: CredentialsUiState,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -389,24 +348,22 @@ private fun FormStep(
             Column(
                 modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
             ) {
-                val name = provider.nameRes?.let { stringResource(it) }
                 Text(
-                    text = if (name != null) stringResource(R.string.login_form_title, name) else stringResource(R.string.credentials_title),
+                    text = stringResource(R.string.credentials_title),
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = if (name != null) stringResource(R.string.login_form_subtitle) else stringResource(R.string.credentials_subtitle),
+                    text = stringResource(R.string.credentials_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = scheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                provider.noteRes?.let { NoteBanner(text = stringResource(it), modifier = Modifier.padding(top = 16.dp)) }
                 LoginField(
                     value = state.email,
                     onValueChange = onEmailChange,
                     label = stringResource(R.string.credentials_email_label),
-                    placeholder = provider.placeholder,
+                    placeholder = "name@example.com",
                     icon = Icons.Rounded.Mail,
                     errorText = if (state.emailError) stringResource(R.string.credentials_email_error) else null,
                     keyboardType = KeyboardType.Email,
