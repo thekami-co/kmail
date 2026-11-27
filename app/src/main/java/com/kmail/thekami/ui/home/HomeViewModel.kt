@@ -211,7 +211,14 @@ class HomeViewModel @Inject constructor(
     }
 
     fun refresh(manual: Boolean = false) {
-        if (refreshing.value) return
+        if (refreshing.value) {
+            if (manual) viewModelScope.launch {
+                extras.update { it.copy(manual = true) }
+                refreshing.first { !it }
+                extras.update { it.copy(manual = false) }
+            }
+            return
+        }
         viewModelScope.launch {
             extras.update { it.copy(manual = manual) }
             refreshing.value = true

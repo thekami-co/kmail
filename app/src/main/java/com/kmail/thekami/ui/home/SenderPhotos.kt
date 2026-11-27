@@ -46,7 +46,7 @@ object SenderPhotos {
         memory.get(key)?.let { return@withContext it.asImageBitmap() }
         if (key in missing) return@withContext null
 
-        val dir = File(context.applicationContext.cacheDir, "sender-photos").apply { mkdirs() }
+        val dir = File(context.applicationContext.cacheDir, "sender-photos-v2").apply { mkdirs() }
         val photoFile = File(dir, "$key.img")
         val noneFile = File(dir, "$key.none")
 
@@ -63,7 +63,7 @@ object SenderPhotos {
             return@withContext null
         }
 
-        when (val result = gate.withPermit { fetch(key) }) {
+        when (val result = gate.withPermit { fetch(key, email) }) {
             is Fetched.Bytes -> {
                 val bitmap = decode(result.data)
                 if (bitmap == null) {
@@ -88,7 +88,7 @@ object SenderPhotos {
         }
     }
 
-    private fun fetch(key: String): Fetched = try {
+    private fun fetch(key: String, email: String): Fetched = try {
         val connection = URL("https://www.gravatar.com/avatar/$key?s=128&d=404").openConnection() as HttpURLConnection
         connection.connectTimeout = 5000
         connection.readTimeout = 5000
@@ -98,7 +98,7 @@ object SenderPhotos {
                     val data = connection.inputStream.use { it.readBytes() }
                     if (data.size in 1..MAX_BYTES) Fetched.Bytes(data) else Fetched.Failed
                 }
-                404 -> Fetched.NoPhoto
+                404 -> fetchDomain(email)
                 else -> Fetched.Failed
             }
         } finally {
@@ -109,6 +109,48 @@ object SenderPhotos {
     }
 
     private fun decode(bytes: ByteArray): Bitmap? = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+    private val FREE_MAIL = setOf(
+        "gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
+        "icloud.com", "me.com", "proton.me", "protonmail.com", "aol.com", "yandex.com", "yandex.ru",
+        "gmx.com", "mail.com", "zoho.com", "aster.cx", "tutanota.com", "tuta.com",
+    )
+    private val SECOND_LEVEL = setOf("co", "com", "org", "net", "gov", "edu", "ac")
+
+    /** anthropic.com for mail.anthropic.com, and example.com.bd for x.example.com.bd. Null for free mail. */
+    private fun brandDomain(email: String): String? {
+        val host = email.substringAfterLast('@', "").trim().lowercase()
+        val parts = host.split('.').filter { it.isNotEmpty() }
+        if (parts.size < 2) return null
+        val keep = if (parts.size >= 3 && parts.last().length == 2 && parts[parts.size - 2] in SECOND_LEVEL) 3 else 2
+        val domain = parts.takeLast(keep).joinToString(".")
+        return if (domain in FREE_MAIL) null else domain
+    }
+
+    /** No Gravatar: use the logo of the sender's company site. Only the domain is sent. */
+    private fun fetchDomain(email: String): Fetched {
+        val domain = brandDomain(email) ?: return Fetched.NoPhoto
+        return try {
+            val connection = URL("https://www.google.com/s2/favicons?domain=$domain&sz=128").openConnection() as HttpURLConnection
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            try {
+                when (connection.responseCode) {
+                    200 -> {
+                        val data = connection.inputStream.use { it.readBytes() }
+                        val bitmap = if (data.size in 1..MAX_BYTES) decode(data) else null
+                        if (bitmap != null && bitmap.width >= 32) Fetched.Bytes(data) else Fetched.NoPhoto
+                    }
+                    404 -> Fetched.NoPhoto
+                    else -> Fetched.Failed
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Exception) {
+            Fetched.Failed
+        }
+    }
 
     private fun keyOf(email: String): String =
         MessageDigest.getInstance("MD5")

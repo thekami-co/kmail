@@ -46,7 +46,7 @@ private fun BoxScope.PullBadge(state: PullToRefreshState, refreshing: Boolean) {
     val density = LocalDensity.current
     val badge = 44.dp
     val badgePx = with(density) { badge.toPx() }
-    val dropPx = with(density) { 84.dp.toPx() }
+    val dropPx = with(density) { 64.dp.toPx() }
     val ringPx = with(density) { 3.dp.toPx() }
     val spin by rememberInfiniteTransition(label = "pull-spin").animateFloat(
         initialValue = 0f,
