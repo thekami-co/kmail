@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_title">Update available</string>
+    <string name="update_message">A new version of Kmail is on Google Play. Update now to get the latest fixes and features.</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Later</string>
+    <string name="drawer_update_available">Update available</string>
+</resources>

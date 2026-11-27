@@ -21,6 +21,7 @@ import com.kmail.thekami.ui.lock.LockScreen
 import com.kmail.thekami.ui.lock.RecoveryActions
 import com.kmail.thekami.ui.nav.KmailNavHost
 import com.kmail.thekami.ui.support.RatePromptHost
+import com.kmail.thekami.ui.support.UpdateHost
 import com.kmail.thekami.ui.theme.AppearanceStore
 import com.kmail.thekami.ui.theme.KmailTheme
 import com.kmail.thekami.ui.theme.ThemeMode
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                     val locked by lockManager.locked.collectAsStateWithLifecycle()
                     Box(Modifier.fillMaxSize()) {
                         KmailNavHost()
-                        if (!locked) RatePromptHost()
+                        if (!locked) { RatePromptHost(); UpdateHost() }
                         if (locked) {
                             LockScreen(
                                 biometricAvailable = lockStore.biometricEnabled && Biometric.isAvailable(this@MainActivity),

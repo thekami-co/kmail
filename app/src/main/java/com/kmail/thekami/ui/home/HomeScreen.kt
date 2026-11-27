@@ -62,6 +62,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import com.kmail.thekami.ui.components.KmailPullIndicator
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -216,8 +218,9 @@ fun HomeScreen(
                 }
             },
         ) { padding ->
+            val pullState = rememberPullToRefreshState()
             val syncAlpha by animateFloatAsState(
-                targetValue = if (state.refreshing) 1f else 0f,
+                targetValue = if (state.refreshing && !state.manualRefresh) 1f else 0f,
                 animationSpec = tween(250),
                 label = "sync-alpha",
             )
@@ -236,6 +239,8 @@ fun HomeScreen(
                 }
                 PullToRefreshBox(
                     isRefreshing = state.manualRefresh,
+                    state = pullState,
+                    indicator = { KmailPullIndicator(pullState, state.manualRefresh) },
                     onRefresh = { vm.refresh(manual = true) },
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                 ) {

@@ -359,6 +359,7 @@ fun HomeDrawer(
                 selected = false,
                 onClick = onSettings,
             )
+            DrawerFooter()
         }
     }
 }

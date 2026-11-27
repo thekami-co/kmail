@@ -23,6 +23,7 @@ zxing = "3.5.4"
 camerax = "1.6.2"
 playServicesAuth = "22.0.0"
 browser = "1.8.0"
+playAppUpdate = "2.1.0"
 orgJson = "20240303"
 
 [libraries]
@@ -60,6 +61,7 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 orgjson = { group = "org.json", name = "json", version.ref = "orgJson" }
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
