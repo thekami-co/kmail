@@ -1,6 +1,11 @@
 package com.kmail.thekami.ui.home
 
+import android.Manifest
+import android.content.ContentUris
 import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.ContactsContract
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
@@ -58,6 +63,13 @@ object SenderPhotos {
             }
             photoFile.delete()
         }
+        contactPhoto(context, email)?.let { data ->
+            decode(data)?.let { bitmap ->
+                runCatching { photoFile.writeBytes(data) }
+                memory.put(key, bitmap)
+                return@withContext bitmap.asImageBitmap()
+            }
+        }
         if (noneFile.exists() && System.currentTimeMillis() - noneFile.lastModified() < MISS_TTL_MS) {
             missing += key
             return@withContext null
@@ -109,6 +121,30 @@ object SenderPhotos {
     }
 
     private fun decode(bytes: ByteArray): Bitmap? = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+    /** The photo saved for this address in the phone's contacts, if the contacts permission is granted. */
+    private fun contactPhoto(context: Context, email: String): ByteArray? {
+        val app = context.applicationContext
+        if (app.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return null
+        return runCatching {
+            val lookup = Uri.withAppendedPath(
+                ContactsContract.CommonDataKinds.Email.CONTENT_LOOKUP_URI,
+                Uri.encode(email.trim()),
+            )
+            app.contentResolver.query(
+                lookup,
+                arrayOf(ContactsContract.CommonDataKinds.Email.CONTACT_ID),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val uri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, cursor.getLong(0))
+                ContactsContract.Contacts.openContactPhotoInputStream(app.contentResolver, uri, true)
+                    ?.use { it.readBytes() }
+            }
+        }.getOrNull()
+    }
 
     private val FREE_MAIL = setOf(
         "gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "msn.com",

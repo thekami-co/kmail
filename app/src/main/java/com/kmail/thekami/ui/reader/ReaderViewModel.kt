@@ -220,6 +220,7 @@ class ReaderViewModel @Inject constructor(
 
     fun setAllowRemote(id: Long, allow: Boolean) {
         val message = parsed[id] ?: return
+        if (allow) message.from?.address?.let { imagePrefs.trust(it) }
         viewModelScope.launch { renderBody(id, message, allow) }
     }
 
