@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_title">নতুন আপডেট এসেছে</string>
+    <string name="update_message">Google Play-তে Kmail-এর নতুন সংস্করণ এসেছে। নতুন ফিচার ও ফিক্স পেতে এখনই আপডেট করুন।</string>
+    <string name="update_now">আপডেট</string>
+    <string name="update_later">পরে</string>
+    <string name="drawer_update_available">আপডেট আছে</string>
+</resources>
