@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
 enum class SwipeDirection { NEXT, PREVIOUS }
@@ -29,6 +30,8 @@ fun Modifier.horizontalSwipeNavigation(
 ): Modifier = pointerInput(thresholdPx) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        val edge = 32.dp.toPx()
+        if (down.position.x < edge || down.position.x > size.width - edge) return@awaitEachGesture
         var dx = 0f
         var dy = 0f
         while (true) {
