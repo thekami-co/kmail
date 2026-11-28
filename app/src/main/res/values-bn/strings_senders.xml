@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_images">ছবি ও প্রেরক</string>
+    <string name="senders_mode_title">ইন্টারনেটের ছবি</string>
+    <string name="senders_mode_ask">প্রেরক অনুযায়ী জিজ্ঞাসা করুন</string>
+    <string name="senders_mode_ask_desc">আপনি “ছবি দেখান” চাপার আগে ছবি বন্ধ থাকে। এরপর একই কোম্পানির মেইলে ছবি নিজে থেকে আসে।</string>
+    <string name="senders_mode_always">সবসময় দেখান</string>
+    <string name="senders_mode_always_desc">প্রতিটি মেইলে ছবি লোড হয়। প্রেরক বুঝতে পারে আপনি কখন মেইল খুলেছেন।</string>
+    <string name="senders_mode_never">কখনো দেখাবেন না</string>
+    <string name="senders_mode_never_desc">প্রতিটি মেইলে ছবি বন্ধ থাকে।</string>
+    <string name="senders_approved">অনুমোদিত প্রেরক</string>
+    <string name="senders_empty">এখনো কোনো অনুমোদিত প্রেরক নেই। মেইলে “ছবি দেখান” চাপলে এখানে যোগ হবে।</string>
+    <string name="senders_all_addresses">এই কোম্পানির সব ঠিকানা</string>
+    <string name="senders_remove">সরান</string>
+</resources>

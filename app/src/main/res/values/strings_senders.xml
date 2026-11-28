@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_images">Images &amp; senders</string>
+    <string name="senders_mode_title">Pictures from the internet</string>
+    <string name="senders_mode_ask">Ask for each sender</string>
+    <string name="senders_mode_ask_desc">Pictures stay blocked until you tap Show images. After that, the same company is remembered.</string>
+    <string name="senders_mode_always">Always show</string>
+    <string name="senders_mode_always_desc">Loads pictures in every message. Senders can tell when you open their mail.</string>
+    <string name="senders_mode_never">Never show</string>
+    <string name="senders_mode_never_desc">Blocks pictures in every message.</string>
+    <string name="senders_approved">Approved senders</string>
+    <string name="senders_empty">No approved senders yet. Tap Show images on a message to add one.</string>
+    <string name="senders_all_addresses">Every address at this company</string>
+    <string name="senders_remove">Remove</string>
+</resources>

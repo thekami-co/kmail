@@ -2,6 +2,7 @@ package com.kmail.thekami.ui.support
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.kmail.thekami.R
@@ -41,5 +42,5 @@ fun SupportSection() {
         }
     }
 
-    SettingsGroup(stringResource(R.string.support_header), entries)
+    SettingsGroup(stringResource(R.string.support_header), entries, accent = Color(0xFFEC6A8C))
 }

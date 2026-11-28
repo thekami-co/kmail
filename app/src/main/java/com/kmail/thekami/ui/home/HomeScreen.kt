@@ -4,6 +4,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
@@ -117,8 +122,19 @@ fun HomeScreen(
     val snackbar = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     var showMove by remember { mutableStateOf(false) }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    // The list drops in from just under the search pill when searching starts.
+    val fall = remember { Animatable(1f) }
+    val fallPx = with(LocalDensity.current) { 48.dp.toPx() }
+    LaunchedEffect(searching) {
+        if (searching) {
+            fall.snapTo(0f)
+            fall.animateTo(1f, tween(360, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)))
+        }
+    }
     val selecting = state.selectedIds.isNotEmpty()
     BackHandler(enabled = selecting) { vm.clearSelection() }
+    BackHandler(enabled = searching && !selecting) { searching = false; vm.onQuery("") }
     if (showMove) {
         MoveDialog(state, onPick = { vm.moveSelected(it); showMove = false }, onDismiss = { showMove = false })
     }
@@ -201,18 +217,19 @@ fun HomeScreen(
                         )
                     } else {
                         Column(Modifier.statusBarsPadding()) {
-                            SearchPill(
-                                query = state.query,
+                            HomeTopBar(
+                                state = state,
+                                searching = searching,
                                 placeholder = stringResource(R.string.home_search_in, mailboxName),
-                                options = state.options,
                                 onQuery = vm::onQuery,
                                 onMenu = { scope.launch { drawerState.open() } },
-                                onSort = vm::setSort,
-                                onRefresh = { vm.refresh(manual = true) },
-                                onSelectAll = vm::selectAll,
+                                onSearchOpen = { searching = true },
+                                onSearchClose = { searching = false; vm.onQuery("") },
+                                onSelect = vm::select,
                                 onAddAccount = onAddAccount,
+                                onOpenSettings = onOpenSettings,
                             )
-                            FilterChips(state.options.filter, vm::setFilter)
+                            FilterChips(state.options.filter, vm::setFilter, state.options, vm::setSort)
                         }
                     }
                 }
@@ -242,7 +259,10 @@ fun HomeScreen(
                     state = pullState,
                     indicator = { KmailPullIndicator(pullState, state.manualRefresh) },
                     onRefresh = { vm.refresh(manual = true) },
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier.weight(1f).fillMaxWidth().graphicsLayer {
+                        translationY = -(1f - fall.value) * fallPx
+                        alpha = 0.35f + 0.65f * fall.value
+                    },
                 ) {
                     Crossfade(targetState = listKind, animationSpec = tween(220), label = "list-kind") { kind ->
                         when (kind) {
@@ -398,7 +418,12 @@ private fun SearchPill(
 }
 
 @Composable
-private fun FilterChips(active: ListFilter, onFilter: (ListFilter) -> Unit) {
+private fun FilterChips(
+    active: ListFilter,
+    onFilter: (ListFilter) -> Unit,
+    options: ListOptions,
+    onSort: (SortOrder) -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     Row(
         Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 2.dp),
@@ -431,6 +456,7 @@ private fun FilterChips(active: ListFilter, onFilter: (ListFilter) -> Unit) {
                 ),
             )
         }
+        SortChip(options, onSort)
     }
 }
 

@@ -3,7 +3,10 @@ package com.kmail.thekami.ui.settings
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -69,7 +72,7 @@ import com.kmail.thekami.ui.components.openLinkAction
 import com.kmail.thekami.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
-private enum class SettingsPage { Hub, Accounts, Signature, Appearance, Language, Sync, Privacy, Inbox, Links, About }
+private enum class SettingsPage { Hub, Accounts, Signature, Appearance, Language, Sync, Privacy, Inbox, Links, Senders, About }
 
 private sealed interface SettingsDialog {
     data object SetPin : SettingsDialog
@@ -98,6 +101,8 @@ fun SettingsScreen(
     var dialogError by remember { mutableStateOf<String?>(null) }
     var pageName by rememberSaveable { mutableStateOf(SettingsPage.Hub.name) }
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
 
     val page = SettingsPage.valueOf(pageName)
     val detail = detailId?.let { id -> accounts.orEmpty().firstOrNull { it.id == id } }
@@ -115,6 +120,7 @@ fun SettingsScreen(
         }
     }
     BackHandler(enabled = page != SettingsPage.Hub || detailId != null) { goBack() }
+    BackHandler(enabled = searching) { searching = false; query = "" }
 
     val errWrong = stringResource(R.string.lock_wrong)
     val errWait = stringResource(R.string.lock_wait, 0)
@@ -142,6 +148,7 @@ fun SettingsScreen(
                 SettingsPage.Privacy -> R.string.settings_privacy
                 SettingsPage.Inbox -> R.string.settings_inbox
                 SettingsPage.Links -> R.string.settings_links
+                SettingsPage.Senders -> R.string.settings_images
                 SettingsPage.About -> R.string.settings_about
             },
         )
@@ -158,19 +165,43 @@ fun SettingsScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    IconButton(onClick = { goBack() }) {
-                        Icon(AppIcons.Back, contentDescription = stringResource(R.string.reader_back))
-                    }
-                },
-            )
+            Box(Modifier.animateContentSize(tween(300, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)))) {
+                if (searching) {
+                    SettingsSearchBar(
+                        query = query,
+                        onQuery = { query = it },
+                        onClose = { searching = false; query = "" },
+                    )
+                } else {
+                    LargeTopAppBar(
+                        scrollBehavior = scrollBehavior,
+                        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        navigationIcon = {
+                            IconButton(onClick = { goBack() }) {
+                                Icon(AppIcons.Back, contentDescription = stringResource(R.string.reader_back))
+                            }
+                        },
+                        actions = {
+                            if (page == SettingsPage.Hub && detailId == null) {
+                                IconButton(onClick = { searching = true }) {
+                                    Icon(AppIcons.Search, contentDescription = stringResource(R.string.settings_search))
+                                }
+                            }
+                        },
+                    )
+                }
+            }
         },
     ) { padding ->
-        Crossfade(
+        if (searching) {
+            SettingsSearchResults(
+                query = query,
+                padding = padding,
+                onOpen = { target -> pageName = target; searching = false; query = "" },
+            )
+        } else AnimatedContent(
             targetState = if (detailId != null) "detail" else pageName,
+            transitionSpec = { settingsTransition() },
             modifier = Modifier.padding(padding).fillMaxSize(),
             label = "settings-page",
         ) { key ->
@@ -316,6 +347,10 @@ fun SettingsScreen(
                         InboxSettingsPage()
                     }
 
+                    SettingsPage.Senders.name -> {
+                        ImageSettingsPage()
+                    }
+
                     SettingsPage.Links.name -> {
                         LinksPage()
                     }
@@ -328,6 +363,8 @@ fun SettingsScreen(
 
                     else -> SettingsHub(
                         accountsSummary = accounts.orEmpty().joinToString { it.emailAddress }.ifEmpty { null },
+                        profileEmail = accounts.orEmpty().firstOrNull()?.emailAddress,
+                        profileColor = accounts.orEmpty().firstOrNull()?.let { androidx.compose.ui.graphics.Color(it.colorArgb) },
                         themeSummary = themeSummary,
                         versionName = vm.versionName,
                         onAccounts = { pageName = SettingsPage.Accounts.name },
@@ -339,6 +376,7 @@ fun SettingsScreen(
                         onPrivacy = { pageName = SettingsPage.Privacy.name },
                         onAbout = { pageName = SettingsPage.About.name },
                         onLinks = { pageName = SettingsPage.Links.name },
+                        onSenders = { pageName = SettingsPage.Senders.name },
                     )
                 }
             }
