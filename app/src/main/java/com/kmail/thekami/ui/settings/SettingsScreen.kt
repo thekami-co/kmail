@@ -103,6 +103,8 @@ fun SettingsScreen(
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    // One scroll position for the main page, so coming back from a page lands where you left.
+    val hubScroll = rememberScrollState()
 
     val page = SettingsPage.valueOf(pageName)
     val detail = detailId?.let { id -> accounts.orEmpty().firstOrNull { it.id == id } }
@@ -205,7 +207,8 @@ fun SettingsScreen(
             modifier = Modifier.padding(padding).fillMaxSize(),
             label = "settings-page",
         ) { key ->
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            val scroll = if (key == SettingsPage.Hub.name) hubScroll else rememberScrollState()
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 when (key) {
                     "detail" -> if (detail != null) {
                         AccountDetailPage(detail, onTransfer = { dialog = SettingsDialog.Transfer(detail.id) }) { dialogError = null; dialog = SettingsDialog.Remove(detail) }

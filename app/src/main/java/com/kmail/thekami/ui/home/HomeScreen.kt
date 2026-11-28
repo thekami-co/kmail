@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.graphicsLayer
@@ -133,6 +134,11 @@ fun HomeScreen(
         }
     }
     val selecting = state.selectedIds.isNotEmpty()
+    // Scrolling the list down hides the top row, scrolling up brings it back.
+    val barMaxPx = with(LocalDensity.current) { 64.dp.toPx() }
+    val barState = remember(barMaxPx) { CollapsingBarState(barMaxPx) }
+    barState.enabled = !searching && !selecting
+    LaunchedEffect(searching, selecting) { if (searching || selecting) barState.show() }
     BackHandler(enabled = selecting) { vm.clearSelection() }
     BackHandler(enabled = searching && !selecting) { searching = false; vm.onQuery("") }
     if (showMove) {
@@ -157,8 +163,12 @@ fun HomeScreen(
                 if (event.kind == UndoKind.ARCHIVE) R.string.home_archived else R.string.home_deleted,
                 event.count,
             )
-            val result = snackbar.showSnackbar(text, actionLabel = undoLabel, duration = SnackbarDuration.Short)
-            if (result == SnackbarResult.ActionPerformed) vm.undo(event.token)
+            // Each move gets its own snackbar at once. Waiting for the old one to close would show Undo after the window ended.
+            snackbar.currentSnackbarData?.dismiss()
+            scope.launch {
+                val result = snackbar.showSnackbar(text, actionLabel = undoLabel, duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) vm.undo(event.token)
+            }
         }
     }
 
@@ -187,6 +197,7 @@ fun HomeScreen(
         },
     ) {
         Scaffold(
+            modifier = Modifier.nestedScroll(barState.connection),
             snackbarHost = { SnackbarHost(snackbar) },
             floatingActionButton = {
                 AnimatedVisibility(
@@ -217,6 +228,7 @@ fun HomeScreen(
                         )
                     } else {
                         Column(Modifier.statusBarsPadding()) {
+                            CollapsingBar(barState) {
                             HomeTopBar(
                                 state = state,
                                 searching = searching,
@@ -229,6 +241,7 @@ fun HomeScreen(
                                 onAddAccount = onAddAccount,
                                 onOpenSettings = onOpenSettings,
                             )
+                            }
                             FilterChips(state.options.filter, vm::setFilter, state.options, vm::setSort)
                         }
                     }

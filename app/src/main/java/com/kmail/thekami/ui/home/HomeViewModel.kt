@@ -102,7 +102,7 @@ private data class Data(
 )
 
 private const val LIST_LIMIT = 500
-private const val UNDO_MS = 4_500L
+private const val UNDO_MS = 6_000L
 
 private fun roleOrder(role: FolderRole) = when (role) {
     FolderRole.INBOX -> 0
@@ -329,10 +329,11 @@ class HomeViewModel @Inject constructor(
         _undo.tryEmit(UndoEvent(token, kind, ids.size))
         undoJobs[token] = viewModelScope.launch {
             delay(UNDO_MS)
-            val role = if (kind == UndoKind.ARCHIVE) FolderRole.ARCHIVE else FolderRole.TRASH
-            val result = actions.moveToRole(ids, role)
+            // From here the move is on its way, so Undo can no longer cancel it half way.
             undoJobs.remove(token)
             undoIds.remove(token)
+            val role = if (kind == UndoKind.ARCHIVE) FolderRole.ARCHIVE else FolderRole.TRASH
+            val result = actions.moveToRole(ids, role)
             // On success the rows stay hidden (they are gone locally too). On failure they come back.
             if (result != MessageActionResult.Ok) {
                 extras.update { it.copy(hidden = it.hidden - ids.toSet(), notice = result) }
