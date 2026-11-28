@@ -12,7 +12,7 @@ It connects to your existing mail accounts over IMAP and SMTP. It is not a hosti
 Early development (Phase 1, foundation). Not usable as a mail client yet.
 See [docs/PROGRESS.md](docs/PROGRESS.md) for what exists and what is untested.
 
-## Build
+## Build 
 
 Every push to `main` builds a signed release APK in GitHub Actions and publishes it as a GitHub pre-release.
 No signing keys or secrets are stored in this repository.
