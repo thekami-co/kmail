@@ -5,6 +5,7 @@ import java.util.Locale
 import org.jsoup.Jsoup
 import org.jsoup.nodes.DataNode
 import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 import org.jsoup.safety.Cleaner
 import org.jsoup.safety.Safelist
 
@@ -39,6 +40,7 @@ object HtmlSanitizer {
         "body{margin:0;padding:12px 16px 16px;overflow-wrap:anywhere;word-wrap:break-word;" +
             "font-family:system-ui,Roboto,sans-serif;font-size:16px;line-height:1.5;" +
             (if (dark) "color:#000;background:transparent}" else "color:#202124;background:#fff}") +
+            ".kemoji{font-family:\"Noto Color Emoji\",\"Apple Color Emoji\",\"Segoe UI Emoji\",sans-serif}" +
             "img{max-width:100% !important;height:auto}table{max-width:100%}" +
             "blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #c4c7c5;color:#5f6368}" +
             "details.kmail-quote{margin:8px 0}" +
@@ -49,7 +51,7 @@ object HtmlSanitizer {
     /** Inverts the page and then inverts pictures back, the usual way to get a dark email without scripts. */
     private const val DARK_CSS =
         "html{filter:invert(1) hue-rotate(180deg)}" +
-            "img,picture,video,svg,[style*=\"background-image\"]{filter:invert(1) hue-rotate(180deg)}"
+            ".kemoji,img,picture,video,svg,[style*=\"background-image\"]{filter:invert(1) hue-rotate(180deg)}"
 
     private val IMPORT = Regex("@import[^;]*;?", RegexOption.IGNORE_CASE)
     private val EXPRESSION = Regex("expression\\s*\\(", RegexOption.IGNORE_CASE)
@@ -59,6 +61,11 @@ object HtmlSanitizer {
     private val URL_IN_TEXT = Regex("https?://[^\\s<>\"']+", RegexOption.IGNORE_CASE)
     private val SAFE_IMAGE_TYPES = setOf("image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp", "image/bmp")
     private const val QUOTE_SELECTOR = "blockquote, div.gmail_quote, div.protonmail_quote, div.yahoo_quoted"
+
+    /** Real emoji only. A joiner counts only between two emoji, so Bengali and Arabic text is never touched. */
+    private const val EMOJI_BASE =
+        "[\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\x{2B50}\\x{2B55}\\x{231A}\\x{231B}\\x{23E9}-\\x{23F3}\\x{23F8}-\\x{23FA}]"
+    private val EMOJI = Regex("(?:$EMOJI_BASE[\\x{FE0F}\\x{20E3}]?(?:\\x{200D}$EMOJI_BASE\\x{FE0F}?)*)+")
 
     fun render(message: ParsedMessage, allowRemote: Boolean, darkView: Boolean = false): SanitizedHtml {
         val html = message.htmlBody ?: textToHtml(message.textBody.orEmpty())
@@ -95,7 +102,7 @@ object HtmlSanitizer {
             val lower = src.lowercase(Locale.ROOT)
             when {
                 lower.startsWith("cid:") -> {
-                    val image = inlineImages[src.substring(4).trim().removePrefix("<").removeSuffix(">")]
+                    val image = findInline(inlineImages, src.substring(4))
                     if (image != null && image.mimeType.lowercase(Locale.ROOT) in SAFE_IMAGE_TYPES) {
                         img.attr("src", "data:${image.mimeType};base64," + Base64.getEncoder().encodeToString(image.bytes))
                     } else {
@@ -110,6 +117,9 @@ object HtmlSanitizer {
                     if (!allowRemote) {
                         blocked++
                         img.removeAttr("src")
+                    } else if (lower.startsWith("http://")) {
+                        // The app does not allow plain http, so ask for the https version of the same picture.
+                        img.attr("src", "https://" + src.substring(7))
                     }
                 }
                 else -> img.removeAttr("src")
@@ -124,6 +134,7 @@ object HtmlSanitizer {
             el.removeAttr("background")
         }
 
+        wrapEmoji(doc.body())
         collapseQuotes(doc.body())
 
         val csp = "default-src 'none'; img-src data:" + (if (allowRemote) " http: https:" else "") +
@@ -132,6 +143,35 @@ object HtmlSanitizer {
         doc.head().prepend("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
         doc.head().append("<style>${baseCss(darkView)}${if (darkView) DARK_CSS else ""}</style>")
         return SanitizedHtml(doc.outerHtml(), blocked)
+    }
+
+    /** Content IDs come with or without <>, in any case, and links may percent-encode them. */
+    private fun findInline(images: Map<String, InlineImage>, raw: String): InlineImage? {
+        fun norm(v: String) = v.trim().removePrefix("<").removeSuffix(">").trim().lowercase(Locale.ROOT)
+        val wanted = norm(raw)
+        val decoded = runCatching { norm(java.net.URLDecoder.decode(raw, "UTF-8")) }.getOrDefault(wanted)
+        return images.entries.firstOrNull { val key = norm(it.key); key == wanted || key == decoded }?.value
+    }
+
+    /**
+     * Puts each emoji in its own span. It always gets the color emoji font, and in the dark view the span
+     * is turned back over so the emoji keep their real colors.
+     */
+    private fun wrapEmoji(body: Element) {
+        val nodes = body.allElements.filter { it.tagName() != "style" }.flatMap { it.textNodes() }
+        for (node in nodes) {
+            val text = node.wholeText
+            val matches = EMOJI.findAll(text).toList()
+            if (matches.isEmpty()) continue
+            var last = 0
+            for (m in matches) {
+                if (m.range.first > last) node.before(TextNode(text.substring(last, m.range.first)))
+                node.before(Element("span").addClass("kemoji").appendChild(TextNode(m.value)))
+                last = m.range.last + 1
+            }
+            if (last < text.length) node.before(TextNode(text.substring(last)))
+            node.remove()
+        }
     }
 
     /** Only the outermost quote is folded, and only if the message has other text besides the quote. */
